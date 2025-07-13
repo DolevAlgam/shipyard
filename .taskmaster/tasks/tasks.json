@@ -5,12 +5,94 @@
         "id": 1,
         "title": "Setup Project Repository and Environment",
         "description": "Initialize the Python project structure with proper directory layout, create virtual environment, and install required dependencies including OpenAI SDK v1.95.1",
-        "details": "Create project structure:\n```\nshipyard/\n├── main.py\n├── requirements.txt\n├── .env.example\n├── .gitignore\n├── README.md\n├── agents/\n│   ├── __init__.py\n│   ├── profiler.py\n│   ├── business.py\n│   ├── app.py\n│   ├── tribal.py\n│   ├── best_practices.py\n│   ├── summarizer.py\n│   ├── document_generator.py\n│   └── feedback_interpreter.py\n├── core/\n│   ├── __init__.py\n│   ├── state_manager.py\n│   ├── openai_client.py\n│   └── prompts.py\n├── utils/\n│   ├── __init__.py\n│   └── helpers.py\n└── tests/\n    └── __init__.py\n```\n\nCreate requirements.txt:\n```\nopenai==1.95.1\npython-dotenv==1.0.0\n```\n\nCreate .env.example:\n```\nOPENAI_API_KEY=your-key-here\n```",
-        "testStrategy": "Verify project structure exists, virtual environment activates successfully, and all dependencies install without conflicts. Test OpenAI SDK import and basic client initialization with mock API key.",
-        "priority": "high",
+        "status": "done",
         "dependencies": [],
-        "status": "pending",
-        "subtasks": []
+        "priority": "high",
+        "details": "Create project structure:\n```\nshipyard/\n├── main.py\n├── requirements.txt\n├── .env.example\n├── .gitignore\n├── README.md\n├── agents/\n│   ├── __init__.py\n│   ├── profiler.py\n│   ├── business.py\n│   ├── app.py\n│   ├── tribal.py\n│   ├── best_practices.py\n│   ├── summarizer.py\n│   ├── document_generator.py\n│   └── feedback_interpreter.py\n├── core/\n│   ├── __init__.py\n│   ├── state_manager.py\n│   ├── openai_client.py\n│   └── prompts.py\n├── utils/\n│   ├── __init__.py\n│   └── helpers.py\n└── tests/\n    └── __init__.py\n```\n\nCreate requirements.txt:\n```\nopenai==1.95.1\npython-dotenv==1.0.0\n```\n\nCreate .env.example:\n```\nOPENAI_API_KEY=your-key-here\n```",
+        "testStrategy": "Verify project structure exists, virtual environment activates successfully, and all dependencies install without conflicts. Test OpenAI SDK import and basic client initialization with mock API key. Validate that all created files have proper imports and basic functionality works.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create project directory structure",
+            "description": "Set up the complete directory layout with all required folders and __init__.py files",
+            "status": "completed",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Create main.py entry point",
+            "description": "Implement the main entry point with complete async interview flow",
+            "status": "completed",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create requirements.txt and .env.example",
+            "description": "Set up dependency management and environment configuration template",
+            "status": "completed",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Create .gitignore file",
+            "description": "Set up comprehensive Python gitignore for the project",
+            "status": "completed",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Implement core module files",
+            "description": "Create state_manager.py, openai_client.py, and prompts.py with complete implementations",
+            "status": "completed",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Implement all agent files",
+            "description": "Create all 8 agent files with proper class structures and functionality",
+            "status": "completed",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Create utility helpers",
+            "description": "Implement utils/helpers.py with comprehensive helper functions",
+            "status": "completed",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Set up virtual environment and install dependencies",
+            "description": "Create Python virtual environment and install OpenAI SDK v1.95.1 and python-dotenv",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 9,
+            "title": "Test project setup and basic functionality",
+            "description": "Verify all imports work correctly, OpenAI client can be initialized, and main entry point is functional",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          }
+        ]
       },
       {
         "id": 2,
@@ -22,7 +104,7 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -35,7 +117,7 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -49,7 +131,7 @@
           2,
           3
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -62,7 +144,7 @@
         "dependencies": [
           4
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -75,7 +157,7 @@
         "dependencies": [
           4
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -88,7 +170,7 @@
         "dependencies": [
           6
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -103,7 +185,7 @@
           6,
           7
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -116,7 +198,7 @@
         "dependencies": [
           8
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -129,13 +211,471 @@
         "dependencies": [
           9
         ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Fix Agent Context Sharing Bug",
+        "description": "Debug and fix the context sharing issue where agents are forgetting previously provided user information and repeating questions, ensuring proper state management and summary passing between agents.",
         "status": "pending",
+        "dependencies": [
+          2,
+          5,
+          8,
+          16
+        ],
+        "priority": "high",
+        "details": "**CRITICAL DISCOVERY**: The context/memory loss issues are symptoms of a deeper architectural problem - the entire codebase violates the LLM-first principle with extensive keyword matching, as identified in Task #16.\n\n**REVISED ROOT CAUSE ANALYSIS**:\n\n1. **Keyword-Based Architecture Causes Information Loss**:\n   - All agents use primitive `_extract_summary()` methods with keyword matching instead of semantic understanding\n   - Example: `if any(scale in content for scale in [\"thousand\", \"million\"])` only detects presence, not actual values\n   - User says \"2GB video files\" → summary captures \"scale mentioned\" not \"2GB videos\"\n   - User says \"$200/month budget\" → summary captures \"budget discussed\" not \"$200/month\"\n\n2. **Follow-Up Detection Ignores Context**:\n   - Keyword-based `needs_follow_up()` doesn't consider available information\n   - Agents repeat questions because keyword matching can't understand context relationships\n   - Example: User mentions \"15 properties\" in profiler, but business agent's keyword logic doesn't recognize this relates to scale\n\n3. **SummarizerAgent Integration Issues**:\n   - `SummarizerAgent` exists but agents still use their broken `_extract_summary()` methods\n   - Context passing in `core/state_manager.py` uses JSON dumps making data harder for AI to parse\n   - `build_system_prompt_context()` needs to pass structured data for proper semantic understanding\n\n**IMPLEMENTATION DEPENDENCY**: This task cannot be completed until Task #16 removes ALL keyword-based logic and implements proper LLM-based information extraction.\n\n**Post-Task-16 Implementation**:\n```python\n# After Task #16 completion - proper LLM-based summarization\nfrom agents.summarizer import SummarizerAgent\nsummarizer = SummarizerAgent()\nsummary = await summarizer.summarize_pillar(self.name, messages, openai_client)\n\n# Enhanced context building with semantic understanding\ndef build_system_prompt_context(self) -> str:\n    context_parts = []\n    for pillar, summary in self.state.summaries.items():\n        if summary:\n            context_parts.append(f\"{pillar.title()}: {self._format_summary_for_context(summary)}\")\n    return \"\\n\".join(context_parts)\n```",
+        "testStrategy": "**PREREQUISITE**: All tests depend on Task #16 completion (removal of keyword-based logic).\n\n1. **Semantic Summary Validation**: Test that LLM-based summarization captures actual user values (\"1000 daily users\", \"$200/month budget\") not just keyword presence. 2. **Context Relationship Understanding**: Verify agents understand semantic relationships between information from different pillars (e.g., \"15 properties\" relates to scale requirements). 3. **Value Preservation Through Context Chain**: Test that specific technical details (\"2GB video files\", \"PostgreSQL database\") flow correctly between agents with full semantic context. 4. **LLM-Based Follow-up Logic**: Ensure follow-up questions are based on semantic understanding of missing information, not keyword matching. 5. **End-to-End Context Flow**: Run complete interview simulations verifying rich contextual information flows without loss of meaning or detail. 6. **Regression Testing**: Test complex user descriptions to ensure LLM-based system captures nuanced information that keyword matching would miss.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Wait for Task #16 completion - Remove keyword-based architecture",
+            "description": "This subtask blocks all other work until Task #16 removes ALL keyword-based logic from the system and implements proper LLM-based information extraction",
+            "status": "pending",
+            "dependencies": [],
+            "details": "Cannot proceed with context sharing fixes until the underlying keyword-based architecture is replaced with LLM-based semantic understanding. Task #16 must complete first.",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement semantic context passing in state_manager.py",
+            "description": "After Task #16, enhance build_system_prompt_context() to pass semantically rich structured data instead of JSON dumps, enabling proper LLM-based context understanding",
+            "status": "pending",
+            "dependencies": [],
+            "details": "Replace JSON dump approach with structured formatting that preserves semantic meaning and relationships between information pieces, making context easily parseable by LLM agents",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Integrate SummarizerAgent with LLM-based workflow",
+            "description": "After Task #16, ensure all agents use the existing SummarizerAgent for semantic summarization instead of any remaining manual extraction methods",
+            "status": "pending",
+            "dependencies": [],
+            "details": "Update main interview loop to consistently use SummarizerAgent.summarize_pillar() with LLM-based understanding, ensuring rich contextual summaries that capture actual user-provided values and relationships",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement semantic content validation",
+            "description": "Create validation logic that uses LLM understanding to verify summaries contain actual user-provided values and semantic relationships, not just keyword presence",
+            "status": "pending",
+            "dependencies": [],
+            "details": "Develop LLM-based validation that checks if specific user responses and their semantic meaning are properly captured and available for context sharing between agents",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Create comprehensive semantic context flow tests",
+            "description": "Develop test cases that verify complex user information and relationships flow correctly through the LLM-based context sharing system with full semantic understanding",
+            "status": "pending",
+            "dependencies": [],
+            "details": "Test scenarios with nuanced user descriptions, technical relationships, and complex requirements to ensure LLM-based context sharing preserves meaning and enables intelligent follow-up behavior",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Improve Summary Generation Quality",
+        "description": "Enhance the SummarizerAgent to create more detailed, structured summaries that capture all key information including numbers, timelines, and technical specifications to prevent context loss between pillars.",
+        "status": "pending",
+        "dependencies": [
+          16,
+          11,
+          5,
+          2
+        ],
+        "priority": "high",
+        "details": "**UPDATED ROOT CAUSE**: Summary quality issues are a direct symptom of the keyword-based architecture violation identified in Task #16. All agents bypass the well-designed `SummarizerAgent` and use primitive keyword-matching `_extract_summary()` methods that cannot understand semantic meaning.\n\n**CRITICAL EVIDENCE OF KEYWORD-BASED SUMMARY FAILURES**:\n\n1. **Business Agent Bug** (`agents/business.py` lines 117-137):\n   ```python\n   if any(scale in content for scale in [\"thousand\", \"million\", \"hundred\", \"k\", \"m\"]):\n       summary[\"user_scale\"] = message[\"content\"]  # Stores entire message!\n   ```\n   **Result**: User says \"I have 15 properties, expecting 1000 users daily\" → summary stores entire message as \"user_scale\" instead of extracting \"15 properties\" and \"1000 daily users\"\n\n2. **App Agent Bug** (`agents/app.py` lines 117-147):\n   ```python\n   if any(lang in content for lang in languages):\n       summary[\"programming_languages\"] = message[\"content\"]\n   ```\n   **Result**: User says \"I prefer Python but might use JavaScript for frontend\" → summary stores entire message instead of extracting structured language preferences\n\n3. **All Agents Use Same Broken Pattern**:\n   - Tribal, Profiler, Feedback agents all use keyword detection + store entire message\n   - No semantic understanding of actual values, quantities, or relationships\n   - Information gets lost in noise instead of clean structured extraction\n\n**REVISED IMPLEMENTATION PLAN** (Dependent on Task #16 completion):\n\n1. **PREREQUISITE: Complete Task #16 First**:\n   - Remove ALL `_extract_summary()` methods from all agent files\n   - Force all agents to use `SummarizerAgent.summarize_pillar()` exclusively\n   - Eliminate all keyword-based extraction logic\n\n2. **Enhanced SummarizerAgent Prompts for Structured Data Extraction**:\n   - Update `core/prompts.py` SUMMARIZER_PROMPT with specific value extraction instructions:\n     - \"Extract specific numerical values with units (e.g., '15 properties', '$200/month', '2GB videos')\"\n     - \"Distinguish between 'no budget specified' vs '$50k budget'\"\n     - \"Capture exact technical terms mentioned by user\"\n     - \"Structure output according to the defined schema\"\n\n3. **Implement Structured Summary Format**:\n   - Update `agents/summarizer.py` with standardized output schema:\n   ```python\n   SUMMARY_SCHEMA = {\n       \"extracted_values\": {\n           \"user_counts\": \"specific numbers (e.g., 1000 daily users)\",\n           \"budget_amounts\": \"exact figures (e.g., $200/month, $50k total)\",\n           \"storage_needs\": \"capacity requirements (e.g., 2GB videos, 500MB files)\",\n           \"timelines\": \"specific dates and deadlines\"\n       },\n       \"technical_specs\": {\n           \"frameworks\": \"mentioned technologies\",\n           \"databases\": \"specific database choices\",\n           \"cloud_providers\": \"AWS, Azure, GCP preferences\",\n           \"compliance\": \"GDPR, HIPAA, SOX requirements\"\n       },\n       \"business_context\": {\n           \"industry\": \"user's business domain\",\n           \"use_cases\": \"primary application purposes\",\n           \"constraints\": \"limitations and requirements\"\n       }\n   }\n   ```\n\n4. **Cross-Pillar Information Synthesis**:\n   - Implement logic in `SummarizerAgent` to merge related information mentioned across different pillars\n   - Add validation to prevent duplicate or conflicting information\n   - Create cross-reference system to link related details (e.g., video storage mentioned in both business and app pillars)\n\n5. **Summary Quality Validation**:\n   - Add validation checks to ensure summaries contain actual extracted values, not full message content\n   - Implement logic to verify critical information isn't lost during summarization\n   - Add fallback mechanisms for edge cases and ambiguous user responses",
+        "testStrategy": "1. **Prerequisite Validation**: Verify Task #16 completion - confirm NO `_extract_summary()` methods exist in any agent files and all agents use `SummarizerAgent.summarize_pillar()` exclusively. 2. **Semantic Value Extraction Testing**: Create test cases with specific numbers, budgets, and technical terms to verify summaries extract actual values (\"$50k budget\", \"15 properties\", \"1000 daily users\") not just detect keywords or store entire messages. 3. **Cross-Pillar Synthesis Testing**: Test scenarios where users mention related information across different pillars (e.g., video storage in business and app pillars) and verify proper consolidation without duplication. 4. **Schema Compliance Testing**: Verify all summaries follow the structured output format and contain extracted values in correct schema fields. 5. **Regression Testing**: Ensure fixes don't break existing functionality and that summary quality improves measurably compared to keyword-based approach. 6. **Edge Case Testing**: Test with ambiguous responses like \"I don't have a specific budget\" to ensure proper categorization vs value extraction. 7. **No Keyword Logic Verification**: Confirm no traces of keyword-based extraction remain anywhere in the codebase.",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "Fix Document Generation Accuracy",
+        "description": "Fix the DocumentGeneratorAgent to properly parse user requirements and generate specific, relevant recommendations that accurately reflect the user's chosen technology stack and constraints.",
+        "status": "pending",
+        "dependencies": [
+          7,
+          12
+        ],
+        "priority": "high",
+        "details": "Based on root cause analysis, fix specific bugs in the DocumentGeneratorAgent causing generic/inaccurate recommendations:\n\n**Bug #1: Generic Infrastructure Checklist Without Context Awareness**\n- Location: `core/prompts.py` - INFRASTRUCTURE_CHECKLIST & DOCUMENT_GENERATOR_PROMPT\n- Fix: Replace one-size-fits-all infrastructure checklist with platform-aware logic\n- Remove VPC/load balancer suggestions for Railway/Vercel users\n\n**Bug #2: Poor Context Utilization in Document Generation**\n- Location: `agents/document_generator.py` line 50+\n- Fix: Replace JSON dumps context passing with structured, AI-friendly format\n- Improve `generate_document()` method to extract specific user requirements\n\n**Bug #3: No Technology-Specific Logic**\n- Location: `core/prompts.py` - DOCUMENT_GENERATOR_PROMPT\n- Fix: Add explicit instructions to analyze user's actual tech stack\n- Exclude irrelevant platform recommendations (e.g., AWS services for Railway users)\n\n**Bug #4: Missing User Validation Against Generic Recommendations**\n- Location: `agents/document_generator.py`\n- Fix: Add filtering logic to remove recommendations contradicting user's stated preferences\n- Validate all suggestions against user's current setup\n\n**Bug #5: Insufficient Prompt Engineering for Specificity**\n- Location: `core/prompts.py` - DOCUMENT_GENERATOR_PROMPT\n- Fix: Enhance prompt to emphasize using ONLY user's actual requirements\n- Avoid platform-specific recommendations for unused platforms\n\n**Specific Implementation Tasks**:\n1. Add platform-aware document generation logic\n2. Implement technology filtering to exclude irrelevant services\n3. Create structured context parsing instead of JSON dumps\n4. Add user requirement validation layer\n5. Enhance prompt engineering for specificity\n6. Implement section-specific context passing",
+        "testStrategy": "1. **Bug Reproduction Testing**: Create test cases that reproduce the identified bugs (Railway user getting AWS VPC suggestions) and verify fixes eliminate these issues. 2. **Platform-Specific Validation**: Test with Railway+Vercel, AWS, Azure combinations to ensure only relevant recommendations appear. 3. **Context Parsing Accuracy**: Verify the new structured context format correctly extracts user requirements without information loss. 4. **Negative Testing**: Ensure inappropriate suggestions are completely filtered out before document generation. 5. **End-to-End Accuracy**: Run complete flows and verify generated documents contain only user-relevant, platform-appropriate recommendations. 6. **Regression Testing**: Ensure fixes don't break existing functionality for users with traditional cloud setups.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Fix Generic Infrastructure Checklist Bug",
+            "description": "Replace the one-size-fits-all INFRASTRUCTURE_CHECKLIST in core/prompts.py with platform-aware logic that excludes irrelevant components like VPCs for Railway/Vercel users",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Improve Context Utilization in Document Generation",
+            "description": "Fix the generate_document() method in agents/document_generator.py to replace JSON dumps with structured, AI-friendly context format for better requirement extraction",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Add Technology-Specific Filtering Logic",
+            "description": "Implement logic in document generator to analyze user's actual tech stack and automatically exclude platform-specific recommendations for unused platforms",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement User Requirement Validation Layer",
+            "description": "Add validation logic in agents/document_generator.py to filter out recommendations that contradict user's stated preferences before document finalization",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Enhanced Prompt Engineering for Specificity",
+            "description": "Update DOCUMENT_GENERATOR_PROMPT in core/prompts.py to explicitly instruct AI to focus ONLY on user's stated requirements and avoid generic platform recommendations",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Implement Section-Specific Context Passing",
+            "description": "Replace broad context passing with targeted information delivery to each document section to improve relevance and reduce generic recommendations",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "title": "Comprehensive System Testing and Validation",
+        "description": "Create comprehensive test scenarios to validate the entire interview flow, context retention, and document generation with different user personas, expertise levels, and project types. Focus on reproducing and validating fixes for identified critical bugs including context loss, generic document generation, and summary quality issues. Critical for validating all bug fixes implemented in Tasks #11, #12, #13, #16, #20, #21, #22.",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          3,
+          5,
+          6,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          16,
+          20,
+          21,
+          22
+        ],
+        "priority": "high",
+        "details": "Implement comprehensive end-to-end testing framework with specific focus on critical bug reproduction and validation of all implemented fixes:\n\n1. **Critical Bug Reproduction Tests**:\n   - Create `tests/integration/test_critical_bugs.py` with specific test cases:\n     - Context Loss Bug: User provides \"2GB videos, 10 minutes, 15 properties\" in profiler → business agent should reference these facts, not re-ask\n     - Generic Document Bug: User says \"Railway backend, Vercel frontend\" → document should NOT include AWS VPC/load balancer recommendations\n     - Summary Quality Bug: User says \"under $200/month budget\" → summary should capture the amount, not just \"budget mentioned\"\n\n2. **Bug Fix Validation Tests** (Tasks #11, #12, #13, #16, #20, #21, #22):\n   - Task #11 fixes: Validate SummarizerAgent integration and proper summary extraction\n   - Task #12 fixes: Test context passing improvements and structured data flow\n   - Task #13 fixes: Verify document generation accuracy and platform-specific recommendations\n   - Task #16 fixes: Test ProfilerAgent expertise assessment improvements\n   - Task #20 fixes: Validate BusinessAgent context retention and adaptive questioning\n   - Task #21 fixes: Test AppAgent technology stack building and context awareness\n   - Task #22 fixes: Verify DocumentGeneratorAgent platform-specific accuracy\n\n3. **Agent-Specific Test Scenarios**:\n   - ProfilerAgent: Test that observed expertise matches stated expertise assessment\n   - BusinessAgent: Test adaptive questioning based on expertise level (novice vs advanced users)\n   - AppAgent: Test that it builds on technology stack already mentioned in profiler\n   - DocumentGeneratorAgent: Test platform-specific accuracy (Railway users get Railway-specific recommendations)\n\n4. **Data Flow Validation Tests**:\n   - SummarizerAgent Integration: Verify all agents call `SummarizerAgent.summarize_pillar()` instead of manual `_extract_summary()`\n   - Context Passing: Test that `build_system_prompt_context()` provides structured data, not JSON dumps\n   - Value Preservation: Test specific values (\"1000 users\", \"PostgreSQL\", \"$50k\") flow through entire system intact\n\n5. **Platform-Specific Test Cases**:\n   - Railway + Vercel User: Should get Railway-specific deployment, Vercel edge functions, NOT AWS services\n   - AWS User: Should get VPC, EC2, load balancer recommendations appropriate for their scale\n   - Mixed Platform User: Should get hybrid recommendations matching their actual setup\n\n6. **Test Scenario Framework**:\n   - Create `tests/integration/test_scenarios.py` with predefined user personas:\n     - Novice developer (minimal cloud experience)\n     - Experienced developer (specific technology preferences)\n     - Enterprise architect (compliance and security focused)\n     - Startup founder (budget-conscious, rapid deployment)\n   - Define project type variations: web apps, APIs, mobile backends, data processing, e-commerce\n   - Create expertise level test cases: beginner, intermediate, advanced\n\n7. **Edge Case and Error Handling**:\n   - Unclear User Responses: Test follow-up logic for ambiguous answers\n   - Contradictory Information: Test handling when user provides conflicting details across pillars\n   - API Failures: Test graceful degradation when OpenAI API calls fail\n   - Empty Summaries: Test behavior when summarization produces minimal content\n\n8. **End-to-End Workflow Tests**:\n   - Complete Interview Flow: Test entire process with different user personas\n   - Document Review Loop: Test feedback interpretation and document revision accuracy\n   - State Persistence: Test that all information is properly maintained throughout the interview\n\n9. **Regression Testing Suite**:\n   - Create baseline tests to ensure bug fixes don't introduce new issues\n   - Test interactions between different bug fixes\n   - Validate that all improvements work together harmoniously",
+        "testStrategy": "1. **Critical Bug Validation**: Execute specific test cases for each identified bug to ensure fixes work correctly. Verify context loss prevention, platform-specific document generation, and accurate summary extraction.\n\n2. **Bug Fix Verification**: Create targeted tests for each implemented fix (Tasks #11, #12, #13, #16, #20, #21, #22) to ensure they work as intended and don't conflict with each other.\n\n3. **Automated Test Suite Execution**: Run all test scenarios using pytest with detailed logging to capture conversation flows, state transitions, and generated outputs. Compare actual vs expected behavior for each persona and project type.\n\n4. **Context Retention Validation**: Execute test conversations containing specific data points (user counts, budgets, timelines, technology choices) and verify that all information appears correctly in final documents without loss or misinterpretation.\n\n5. **Platform-Specific Testing**: Test each supported platform (Railway, AWS, Vercel, etc.) with identical user inputs to ensure platform-specific recommendations are accurate and mutually exclusive. Validate that mixed platform setups receive appropriate hybrid recommendations.\n\n6. **Agent Integration Testing**: Verify that all agents properly use SummarizerAgent.summarize_pillar() and that context passing uses structured data rather than JSON dumps.\n\n7. **Value Preservation Testing**: Track specific numerical values, technology choices, and constraints through the entire interview flow to ensure no data loss or corruption occurs.\n\n8. **Regression Testing**: Maintain a baseline of expected outputs for each test scenario and automatically detect when changes introduce regressions in conversation quality or document accuracy. Pay special attention to interactions between different bug fixes.\n\n9. **Manual Validation**: Conduct human review of generated documents for coherence, technical accuracy, and alignment with stated user requirements.\n\n10. **Performance Benchmarking**: Measure and document response times, memory usage, and API call efficiency across all test scenarios to establish performance baselines.\n\n11. **Bug Documentation**: Create detailed bug reports with reproduction steps, expected vs actual behavior, conversation logs, and impact assessment for any identified issues.\n\n12. **Fix Validation Reporting**: Generate comprehensive reports showing which bug fixes are working correctly and which may need additional attention.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Critical Bug Reproduction Test Suite",
+            "description": "Implement specific test cases to reproduce and validate fixes for the three critical bugs: context loss, generic document generation, and summary quality issues",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement Agent-Specific Test Scenarios",
+            "description": "Create targeted tests for each agent to validate their specific functionality: ProfilerAgent expertise assessment, BusinessAgent adaptive questioning, AppAgent technology stack building, and DocumentGeneratorAgent platform-specific accuracy",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Build Data Flow Validation Framework",
+            "description": "Create tests to verify SummarizerAgent integration, structured context passing, and value preservation throughout the system",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Develop Platform-Specific Test Cases",
+            "description": "Implement comprehensive tests for Railway, AWS, Vercel, and mixed platform scenarios to ensure accurate platform-specific recommendations",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Create User Persona Test Framework",
+            "description": "Implement test scenarios for different user personas (novice, experienced, enterprise architect, startup founder) with various project types and expertise levels",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Implement Edge Case and Error Handling Tests",
+            "description": "Create tests for unclear responses, contradictory information, API failures, and empty summaries to ensure robust error handling",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Build End-to-End Workflow Test Suite",
+            "description": "Implement complete interview flow tests, document review loop validation, and state persistence verification",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Create Test Automation and Reporting Infrastructure",
+            "description": "Set up pytest configuration, logging framework, and automated test reporting to support comprehensive test execution and analysis",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 9,
+            "title": "Implement Bug Fix Validation Test Suite",
+            "description": "Create specific test cases to validate all bug fixes implemented in Tasks #11, #12, #13, #16, #20, #21, #22, ensuring they work correctly and don't introduce regressions",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 10,
+            "title": "Build Regression Testing Framework",
+            "description": "Establish baseline tests and automated regression detection to ensure bug fixes don't conflict with each other or introduce new issues",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Improve Agent Question Intelligence and Avoid Repetition",
+        "description": "Enhance prompt engineering for each agent to better utilize context and avoid asking for information already provided, implementing logic to skip topics already covered and improve follow-up question quality.",
+        "status": "pending",
+        "dependencies": [
+          2,
+          4,
+          5,
+          11,
+          12,
+          16
+        ],
+        "priority": "medium",
+        "details": "**UPDATED ROOT CAUSE**: Question repetition is a direct symptom of the keyword-based architecture violation identified in Task #16. Agents cannot intelligently avoid repetition because keyword-based logic cannot understand semantic relationships between previously provided information.\n\n**CRITICAL DISCOVERY**: The repetitive questioning and poor intelligence is directly caused by:\n\n1. **Follow-Up Detection Uses Keywords, Not Context**:\n   - `utils/helpers.py` `needs_follow_up()` checks for hardcoded phrases like \"what do you mean\", \"i don't understand\"\n   - Completely ignores whether information was already provided elsewhere\n   - Example: User says \"2GB videos, 10 minutes\" in profiler → business agent still asks about storage because keyword logic doesn't understand this relates to storage needs\n\n2. **Skip Detection Ignores Semantic Context**:\n   - `is_skip_response()` only checks for literal phrases like \"skip\", \"i don't know\"\n   - Can't understand when user provided relevant information in different words\n   - Example: User says \"We mentioned this earlier\" → keyword logic doesn't recognize this as skip intent\n\n3. **Agents Can't Parse Existing Information**:\n   - All `_extract_summary()` methods store full messages instead of extracting semantic meaning\n   - Agents receive garbled context they can't intelligently parse\n   - Example: Business summary contains \"user said: I have 15 properties...\" instead of structured \"property_count: 15\"\n\n**IMPLEMENTATION PLAN** (Post Task #16 Completion):\n\n1. **Replace Keyword-Based Follow-Up Detection**:\n   - Remove hardcoded phrase matching in `utils/helpers.py`\n   - Implement LLM-based understanding of response completeness:\n     ```python\n     def needs_follow_up_llm(response: str, question: str, existing_context: str) -> bool:\n         prompt = f\"\"\"\n         Question: {question}\n         User Response: {response}\n         Existing Context: {existing_context}\n         \n         Does this response fully answer the question considering the existing context?\n         Return: true/false\n         \"\"\"\n     ```\n\n2. **Implement Semantic Skip Detection**:\n   - Replace keyword matching with LLM-based intent recognition:\n     ```python\n     def is_skip_response_llm(response: str) -> bool:\n         prompt = f\"\"\"\n         User Response: {response}\n         \n         Is the user indicating they want to skip this question or that the information was already provided?\n         Consider phrases like \"already mentioned\", \"covered this\", \"skip\", etc.\n         Return: true/false\n         \"\"\"\n     ```\n\n3. **Enhanced Context-Aware Prompt Engineering**:\n   - Update `core/prompts.py` to include semantic context analysis:\n     - Add \"CRITICAL: Analyze the COMPLETED PILLARS section semantically to understand what information is already available\"\n     - Include \"Do NOT ask for information that can be inferred from previous responses\"\n     - Add \"Build upon existing information with deeper, more specific questions\"\n\n4. **Implement Information Gap Analysis**:\n   - Add LLM-based gap analysis to agent prompts:\n     ```python\n     def _generate_gap_analysis_prompt(self, topic: str, existing_context: str) -> str:\n         return f\"\"\"\n         EXISTING CONTEXT: {existing_context}\n         \n         Analyze what specific information is still needed for {topic}.\n         Consider semantic relationships - if user mentioned \"2GB videos\", don't ask about file sizes.\n         Generate ONE specific question that fills the biggest information gap.\n         \"\"\"\n     ```\n\n5. **Cross-Agent Semantic Information Mapping**:\n   - Implement LLM-based logic to understand relationships across pillars:\n     ```python\n     def _map_cross_pillar_info_llm(self, state: Dict) -> Dict:\n         prompt = f\"\"\"\n         Previous Pillar Summaries: {state.get('summaries', {})}\n         \n         Extract and map related information:\n         - Business metrics (user counts, revenue) → Infrastructure needs\n         - Technical specs (file sizes, formats) → Storage/bandwidth requirements\n         - Constraints (budget, timeline) → Technology choices\n         \n         Return structured mapping of available information.\n         \"\"\"\n     ```\n\n6. **Intelligent Question Generation**:\n   - Implement context-aware question generation using LLM understanding:\n     ```python\n     def _generate_intelligent_question(self, topic: str, context: Dict) -> str:\n         prompt = f\"\"\"\n         Topic: {topic}\n         Available Context: {context}\n         \n         Generate an intelligent question that:\n         1. Builds upon existing information\n         2. Avoids repeating what's already known\n         3. Seeks specific details needed for {topic}\n         \n         Example: If user mentioned \"15 properties\", ask about occupancy rates, not property count.\n         \"\"\"\n     ```",
+        "testStrategy": "**PREREQUISITE**: All tests depend on Task #16 completion (removal of keyword-based logic).\n\n1. **Semantic Follow-Up Detection Testing**: Test that LLM-based follow-up detection correctly identifies when responses are complete vs incomplete, considering existing context. Verify it doesn't trigger follow-ups when information was provided in different words.\n\n2. **Context-Aware Question Validation**: Test specific scenarios from root cause analysis - user provides \"2GB, 10 minutes video\" in profiler, verify app agent doesn't re-ask about storage but asks intelligent follow-ups like \"Given your 2GB video files, what's your expected concurrent upload volume?\"\n\n3. **Semantic Skip Detection**: Test that LLM-based skip detection recognizes various ways users indicate information was already provided (\"mentioned earlier\", \"covered this\", \"already told you\") not just literal \"skip\" keywords.\n\n4. **Information Completeness Testing**: Create test cases where users mention specific details (\"15 properties\", \"PostgreSQL database\", \"$50k budget\") to one agent, verify subsequent agents reference these facts instead of re-asking.\n\n5. **Cross-Pillar Semantic Mapping**: Test that technical specs from profiler (video duration, file sizes) are properly understood and connected to infrastructure questions in app pillar through semantic analysis, not keyword matching.\n\n6. **Gap Analysis Testing**: Verify agents correctly identify what information is missing vs what's already provided through semantic understanding, and focus questions on actual gaps.\n\n7. **Repetition Prevention**: Run comprehensive tests ensuring no agent asks for information clearly provided in previous pillars, with specific test cases for common repetition patterns identified in the bug analysis.\n\n8. **Intelligent Question Generation**: Test that agents generate semantically aware questions like \"You mentioned 15 properties - what's the average occupancy rate?\" instead of generic \"How many users do you have?\"",
+        "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Remove ALL Keyword-Based Logic and Replace with LLM Calls",
+        "description": "Eliminate all keyword-based pattern matching throughout the codebase and replace with proper OpenAI agent calls to enforce the LLM-first architectural principle. This is the foundational architectural fix that enables other improvements.",
+        "status": "in-progress",
+        "dependencies": [],
+        "priority": "high",
+        "details": "This is a critical architectural refactoring to remove all rule-based logic that violates the LLM-first principle. As the foundational fix, this task must be completed first before other architectural improvements can proceed. **CRITICAL VIOLATIONS FOUND** that must be immediately addressed:\n\n**IMMEDIATE PRIORITY FIXES:**\n\n**1. BaseAgent Violations (CRITICAL)**:\n- `agents/base_agent.py` lines 14-46: Remove `unclear_indicators`, `advanced_terms`, `intermediate_terms` keyword lists\n- Delete `needs_follow_up()` and `extract_expertise_level()` methods that use keyword matching\n- Replace with LLM-based analysis calls\n\n**2. utils/helpers.py Massive Violations**:\n- Lines 18-41: `unclear_indicators` list for follow-up detection\n- Lines 93-104: `error_patterns` for response validation\n- Lines 126-130: Keyword matching for expertise levels\n- Lines 155-177: `skip_phrases` for skip detection\n- Lines 219-242: `advanced_terms`/`intermediate_terms` for complexity\n- **SOLUTION**: Replace ALL functions with dedicated LLM agent calls\n\n**3. All Agent _extract_summary() Methods**:\n- `agents/business.py` lines 117-137: `if any(scale in content for scale in [\"thousand\", \"million\"])`\n- `agents/app.py` lines 117-147: Keyword matching for languages, frameworks, databases\n- `agents/tribal.py` lines 118-142: Provider, tool, expertise keyword detection\n- `agents/profiler.py` lines 162-175: Domain and timeline keyword matching\n- `agents/feedback_interpreter.py` line 109: Change detection keywords\n- **SOLUTION**: Delete ALL _extract_summary methods, force SummarizerAgent LLM calls\n\n**4. Agent Process Logic Violations**:\n- Every agent imports and uses: `needs_follow_up`, `is_skip_response`, `extract_expertise_level`\n- Replace with dedicated LLM agents for each decision point\n\n**REQUIRED LLM REPLACEMENT AGENTS:**\n\n```python\n# 1. Follow-Up Detection Agent\nasync def needs_follow_up_llm(user_response: str, question: str, openai_client) -> bool:\n    prompt = f\"\"\"\n    QUESTION ASKED: {question}\n    USER RESPONSE: {user_response}\n    \n    Analyze if this response adequately answers the question or if follow-up is needed.\n    Return \"FOLLOW_UP_NEEDED\" or \"COMPLETE\"\n    \"\"\"\n    result = await openai_client.call_agent(\"You are a conversation analyst.\", prompt)\n    return \"FOLLOW_UP_NEEDED\" in result.upper()\n\n# 2. Skip Detection Agent\nasync def is_skip_request_llm(user_response: str, openai_client) -> bool:\n    prompt = f\"\"\"\n    USER RESPONSE: {user_response}\n    \n    Determine if the user wants to skip this question.\n    Return \"SKIP\" or \"ANSWER\"\n    \"\"\"\n    result = await openai_client.call_agent(\"You are a conversation analyst.\", prompt)\n    return \"SKIP\" in result.upper()\n\n# 3. Technical Complexity Assessment Agent\nasync def assess_technical_complexity_llm(user_description: str, openai_client) -> str:\n    prompt = f\"\"\"\n    USER PROJECT DESCRIPTION: {user_description}\n    \n    Assess technical complexity: \"NOVICE\", \"INTERMEDIATE\", or \"ADVANCED\"\n    \"\"\"\n    result = await openai_client.call_agent(\"You are a technical complexity analyst.\", prompt)\n    return result.strip().upper()\n```\n\n**IMPLEMENTATION STEPS:**\n1. **IMMEDIATE**: Remove BaseAgent keyword violations\n2. Replace all needs_follow_up/is_skip_response calls with LLM agents\n3. Delete all _extract_summary methods, force SummarizerAgent usage\n4. Rewrite utils/helpers.py to be 100% LLM-based\n5. Update all agent imports and method calls\n6. Remove all keyword lists and arrays from codebase\n\n**FILES REQUIRING COMPLETE REWRITE:**\n- `agents/base_agent.py`: Remove all keyword-based methods\n- `utils/helpers.py`: Replace all functions with LLM agent calls\n- All agent files: Remove _extract_summary methods, update process logic\n- Update all imports to remove keyword-based helper functions\n\n**NOTE**: This foundational fix enables Tasks #11 and #12 which depend on proper LLM-based architecture.",
+        "testStrategy": "**1. Critical Violation Audit**: Perform comprehensive search for remaining keyword-based logic using patterns like `if any(`, `in content`, keyword arrays (`unclear_indicators`, `advanced_terms`, etc.), and string matching. Verify complete removal from BaseAgent and utils/helpers.py.\n\n**2. LLM Agent Replacement Testing**: Test that all decision points now use dedicated LLM agents:\n- `needs_follow_up_llm()` replaces keyword-based follow-up detection\n- `is_skip_request_llm()` replaces skip phrase matching\n- `assess_technical_complexity_llm()` replaces keyword-based complexity assessment\n- Verify all agents call `SummarizerAgent.summarize_pillar()` instead of `_extract_summary()`\n\n**3. Semantic Understanding Validation**: Create test scenarios with edge cases that previously failed with keyword matching:\n- Users saying \"I'm not sure about that\" vs \"Skip this question\"\n- Technical descriptions without exact keyword matches\n- Unusual phrasings that should trigger follow-ups\n- Verify LLM agents understand semantic meaning vs literal keyword presence\n\n**4. Architecture Compliance Testing**: Validate 100% LLM-first principle compliance:\n- No remaining keyword lists or arrays in codebase\n- All decision logic routes through OpenAI API calls\n- No hardcoded string matching patterns remain\n- Test with various conversation styles to ensure robust LLM-based understanding\n\n**5. Integration and Performance Testing**: Test LLM agent failure scenarios, verify graceful degradation, and ensure removal of keyword shortcuts doesn't break core functionality. Run complete interview flows to validate seamless LLM-first architecture.\n\n**6. Regression Testing**: Verify that conversations previously handled by keyword logic now work better with semantic LLM understanding, especially edge cases and ambiguous user responses.\n\n**7. Dependency Validation**: Confirm that completion of this task unblocks Tasks #11 and #12 by providing the proper LLM-based foundation they require.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Remove BaseAgent Keyword Violations (CRITICAL)",
+            "description": "Immediately remove all keyword-based methods from agents/base_agent.py that violate LLM-first principle",
+            "status": "done",
+            "dependencies": [],
+            "details": "Delete the following keyword-based violations from BaseAgent:\n- Lines 14-46: Remove `unclear_indicators`, `advanced_terms`, `intermediate_terms` keyword lists\n- Remove `needs_follow_up()` method that uses keyword matching\n- Remove `extract_expertise_level()` method that uses keyword arrays\n- Clean up all imports and references to these methods\n<info added on 2025-07-13T01:38:59.217Z>\n## What I Changed in BaseAgent\n\n**BEFORE** (50 lines with keyword violations):\n```python\nclass BaseAgent(ABC):\n    # ... init method ...\n    \n    def needs_follow_up(self, user_answer: str) -> bool:\n        unclear_indicators = [\n            \"what do you mean\", \"i don't understand\", \n            \"can you explain\", \"i'm not sure\", \"maybe\",\n            \"i think\", \"possibly\", \"huh?\", \"?\"\n        ]\n        answer_lower = user_answer.lower()\n        return any(indicator in answer_lower for indicator in unclear_indicators)\n    \n    def extract_expertise_level(self, user_response: str) -> str:\n        advanced_terms = [\n            \"microservices\", \"kubernetes\", \"docker\", \"ci/cd\", \"terraform\",\n            # ... 13 more terms\n        ]\n        intermediate_terms = [\n            \"api\", \"database\", \"server\", \"hosting\", \"deployment\",\n            # ... 11 more terms  \n        ]\n        # keyword matching logic\n```\n\n**AFTER** (13 lines, clean abstract base):\n```python\nclass BaseAgent(ABC):\n    def __init__(self, name: str, topics: List[str], prompt: str):\n        self.name = name\n        self.topics = topics\n        self.prompt = prompt\n    \n    @abstractmethod\n    async def process_topic(self, topic: str, state: Dict, openai_client) -> Dict:\n        \"Process a single topic using LLM-based analysis\"\n        pass\n```\n\n**Changes Made**:\n✅ Removed `needs_follow_up()` method with 9 hardcoded unclear indicators\n✅ Removed `extract_expertise_level()` method with 24 keyword terms  \n✅ Cleaned up to pure abstract base class\n✅ Reduced from 50 lines to 13 lines\n✅ Eliminated all keyword-based logic violations\n\n**Ready for Approval**: The BaseAgent is now a clean, LLM-first abstract base class with no keyword violations.\n</info added on 2025-07-13T01:38:59.217Z>",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Create Follow-Up Detection LLM Agent",
+            "description": "Replace keyword-based follow-up detection with semantic LLM analysis",
+            "status": "done",
+            "dependencies": [],
+            "details": "Implement `needs_follow_up_llm()` function that:\n- Takes user response and original question as input\n- Uses OpenAI to analyze if response adequately answers the question\n- Returns boolean based on semantic understanding, not keyword matching\n- Handles edge cases like unclear responses, questions, or confusion indicators\n<info added on 2025-07-13T01:40:49.934Z>\n## LLM-Based Follow-Up Detection Implementation\n\n✅ **Created `needs_follow_up_llm()` Function** in `utils/helpers.py`:\n\n**Function Signature:**\n```python\nasync def needs_follow_up_llm(user_answer: str, question: str, openai_client) -> bool\n```\n\n**Key Improvements over Keyword Approach:**\n1. **Semantic Understanding**: Uses OpenAI to analyze conversation context, not just keyword presence\n2. **Question-Aware**: Considers the original question to determine if response is adequate\n3. **Context-Sensitive**: Understands when responses are vague, off-topic, or incomplete\n4. **Robust Analysis**: Evaluates uncertainty, confusion, and clarification requests semantically\n\n**LLM Prompt Design:**\n- Clear instructions for follow-up analysis\n- Considers response adequacy, confusion indicators, and relevance\n- Returns structured \"FOLLOW_UP_NEEDED\" or \"COMPLETE\" response\n- Handles edge cases like vague responses and off-topic answers\n\n**Error Handling:**\n- Graceful fallback to basic heuristics if OpenAI API fails\n- Maintains system reliability during API outages\n\n**Legacy Compatibility:**\n- Kept original `needs_follow_up()` function marked as DEPRECATED\n- Allows gradual migration across all agent files\n- Will be removed in subtask 16.6\n\n**Next Steps Required:**\n- Update all agent imports to use `needs_follow_up_llm`\n- Update agent method calls to pass `question` and `openai_client` parameters\n- Test semantic understanding vs keyword matching\n\n**Files Using This Function (Need Updates):**\n- `agents/profiler.py`\n- `agents/business.py` \n- `agents/app.py`\n- `agents/tribal.py`\n- `utils/__init__.py`\n</info added on 2025-07-13T01:40:49.934Z>\n<info added on 2025-07-13T01:46:42.655Z>\n## ✅ SUBTASK 16.2 COMPLETE - LLM-Based Follow-Up Detection Fully Implemented\n\n**WHAT WAS COMPLETED:**\n\n### **1. Created LLM-Based Function** (`utils/helpers.py`)\n✅ **New Function**: `needs_follow_up_llm(user_answer, question, openai_client) -> bool`\n\n**Key Features:**\n- **Semantic Understanding**: Uses OpenAI to analyze conversation context, not keywords\n- **Question-Aware**: Considers the original question to determine response adequacy  \n- **Context-Sensitive**: Understands vague, off-topic, or incomplete responses\n- **Error Handling**: Graceful fallback if OpenAI API fails\n\n### **2. Updated All Agent Files**\n✅ **Updated Import Statements**:\n- `agents/profiler.py`: `needs_follow_up` → `needs_follow_up_llm`\n- `agents/business.py`: `needs_follow_up` → `needs_follow_up_llm`  \n- `agents/app.py`: `needs_follow_up` → `needs_follow_up_llm`\n- `agents/tribal.py`: `needs_follow_up` → `needs_follow_up_llm`\n\n✅ **Updated Function Calls**:\n**Before (keyword-based):**\n```python\nif needs_follow_up(user_answer):\n```\n\n**After (LLM-based):**\n```python\nif await needs_follow_up_llm(user_answer, agent_response, self.client):\n```\n\n### **3. Removed Deprecated Function**\n✅ **Deleted**: Old `needs_follow_up()` function with 18 hardcoded keyword indicators\n✅ **Clean Architecture**: No keyword-based follow-up detection remains in codebase\n\n### **4. Full Migration Complete**\n✅ **No Broken References**: All agent files successfully updated\n✅ **Async Compatibility**: All calls properly use `await` syntax\n✅ **Parameter Passing**: Correctly pass `question` and `openai_client` parameters\n\n**IMPACT:**\n- **Semantic Understanding**: System now understands user intent vs just keyword presence\n- **Context Awareness**: Considers what question was asked vs what was answered\n- **Better UX**: More intelligent follow-up decisions based on conversation flow\n- **Architecture Compliance**: 100% LLM-first approach for follow-up detection\n\n**READY FOR APPROVAL**: Complete migration from keyword-based to LLM-based follow-up detection with no remaining violations in this area.\n</info added on 2025-07-13T01:46:42.655Z>\n<info added on 2025-07-13T01:48:15.532Z>\n## 🐛 CRITICAL BUG FIX - Import Error Resolved\n\n**BUG DISCOVERED**: ImportError: cannot import name 'needs_follow_up' from 'utils.helpers'\n\n**ROOT CAUSE**: The utils/__init__.py file was still importing the old needs_follow_up function that was removed.\n\n**FIX APPLIED**: Updated utils/__init__.py to import needs_follow_up_llm instead of needs_follow_up and updated __all__ list accordingly.\n\n**RESULT**: Import error resolved - system should now run without issues.\n\n**SUBTASK 16.2 NOW FULLY COMPLETE**: All imports, function calls, and module exports properly updated for LLM-based follow-up detection.\n</info added on 2025-07-13T01:48:15.532Z>",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create Skip Detection LLM Agent",
+            "description": "Replace hardcoded skip phrase matching with LLM-based intent analysis",
+            "status": "in-progress",
+            "dependencies": [],
+            "details": "Implement `is_skip_request_llm()` function that:\n- Analyzes user response for skip intent using OpenAI\n- Understands semantic meaning beyond literal \"skip\" keywords\n- Handles variations like \"I don't know\", \"not applicable\", \"move on\"\n- Returns boolean based on user intent analysis",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Create Technical Complexity Assessment LLM Agent",
+            "description": "Replace keyword-based complexity scoring with LLM semantic analysis",
+            "status": "pending",
+            "dependencies": [],
+            "details": "Implement `assess_technical_complexity_llm()` function that:\n- Analyzes user project descriptions for technical sophistication\n- Uses OpenAI to assess complexity based on language patterns and concepts\n- Returns NOVICE/INTERMEDIATE/ADVANCED based on semantic understanding\n- Replaces primitive keyword matching with nuanced technical assessment",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Delete All Agent _extract_summary Methods",
+            "description": "Remove all primitive keyword-based summary extraction methods from agent files",
+            "status": "pending",
+            "dependencies": [],
+            "details": "Delete `_extract_summary()` methods from:\n- `agents/business.py` (lines 117-137)\n- `agents/app.py` (lines 117-147)\n- `agents/tribal.py` (lines 118-142)\n- `agents/profiler.py` (lines 162-175)\n- `agents/feedback_interpreter.py` (line 109)\n\nForce all agents to use `SummarizerAgent.summarize_pillar()` exclusively for content extraction.",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Rewrite utils/helpers.py to be LLM-Based",
+            "description": "Replace all keyword-based helper functions with LLM agent calls",
+            "status": "pending",
+            "dependencies": [],
+            "details": "Completely rewrite utils/helpers.py to remove:\n- Lines 18-41: `unclear_indicators` list\n- Lines 93-104: `error_patterns` array\n- Lines 126-130: Keyword matching for expertise\n- Lines 155-177: `skip_phrases` detection\n- Lines 219-242: `advanced_terms`/`intermediate_terms`\n\nReplace all functions with LLM-based equivalents that use semantic analysis.",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Update All Agent Imports and Method Calls",
+            "description": "Update all agent files to use new LLM-based methods instead of keyword functions",
+            "status": "pending",
+            "dependencies": [],
+            "details": "Update all agent files to:\n- Remove imports of keyword-based helper functions\n- Replace `needs_follow_up()` calls with `needs_follow_up_llm()`\n- Replace `is_skip_response()` calls with `is_skip_request_llm()`\n- Replace `extract_expertise_level()` calls with `assess_technical_complexity_llm()`\n- Update all method signatures to include openai_client parameter",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Comprehensive Keyword Logic Audit and Cleanup",
+            "description": "Perform final codebase audit to ensure complete removal of all keyword-based logic",
+            "status": "pending",
+            "dependencies": [],
+            "details": "Search entire codebase for remaining violations:\n- Scan for `if any(` patterns with keyword arrays\n- Find remaining hardcoded string matching logic\n- Verify no keyword lists remain in any files\n- Ensure all decision points route through LLM agents\n- Document any remaining rule-based logic that needs LLM replacement",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "title": "Design Enhanced Agentic Document Generation System",
+        "description": "Design and implement a comprehensive multi-agent document generation system where specialized agents write different sections (Architecture, Security, Cost Analysis, etc.) and a consolidation agent combines them into professional-grade, detailed infrastructure planning documents.",
+        "details": "**ARCHITECTURAL DESIGN FOR ENHANCED DOCUMENT GENERATION**:\n\n**1. Multi-Agent Document Generation Architecture**:\n- Create specialized document agents in `agents/document/`:\n  - `ArchitectureAgent`: Designs system architecture, data flow, component relationships\n  - `SecurityAgent`: Analyzes security requirements, compliance, threat modeling\n  - `CostAnalysisAgent`: Detailed cost breakdowns, optimization recommendations\n  - `ScalabilityAgent`: Performance planning, load testing strategies, scaling patterns\n  - `DeploymentAgent`: CI/CD pipelines, infrastructure as code, deployment strategies\n  - `MonitoringAgent`: Observability, logging, alerting, SLA definitions\n  - `DocumentConsolidatorAgent`: Combines all sections into cohesive final document\n\n**2. Advanced Reasoning Integration**:\n- Implement `core/reasoning_engine.py` with support for advanced models (o3, o1-preview)\n- Use reasoning models for:\n  - Initial document planning and section allocation\n  - Cross-section consistency validation\n  - Final document quality assessment and enhancement\n- Implement model selection logic: reasoning models for planning, standard models for content generation\n\n**3. Enhanced Document Structure**:\n```python\nclass DocumentSection:\n    def __init__(self, section_type: str, agent_class: str):\n        self.section_type = section_type  # \"architecture\", \"security\", etc.\n        self.agent_class = agent_class\n        self.content = \"\"\n        self.metadata = {}\n        self.cross_references = []\n\nclass EnhancedDocument:\n    def __init__(self):\n        self.sections = {}\n        self.executive_summary = \"\"\n        self.table_of_contents = \"\"\n        self.appendices = {}\n        self.total_length_target = 15000  # words minimum\n```\n\n**4. Context-Aware Section Generation**:\n- Each specialized agent receives full context from all previous pillars\n- Implement section interdependency mapping to ensure consistency\n- Add cross-referencing system between sections\n- Include detailed technical specifications, code examples, and implementation guides\n\n**5. Quality Enhancement Features**:\n- Implement document length validation (minimum 15,000 words)\n- Add technical depth scoring system\n- Include professional formatting with diagrams, tables, and code blocks\n- Implement iterative refinement process with quality gates\n\n**6. Integration with Existing System**:\n- Extend current `DocumentGeneratorAgent` to orchestrate specialized agents\n- Maintain compatibility with existing state management and context flow\n- Ensure all bug fixes from Tasks 13, 16 are preserved and enhanced",
+        "testStrategy": "**1. Multi-Agent Coordination Testing**: Verify each specialized agent generates appropriate content for their domain and that the DocumentConsolidatorAgent successfully combines sections without duplication or inconsistencies. Test with various technology stacks to ensure platform-specific recommendations.\n\n**2. Document Quality Validation**: Implement automated testing for document length (minimum 15,000 words), technical depth scoring, and professional formatting. Verify documents include specific implementation details, code examples, and actionable recommendations rather than generic advice.\n\n**3. Advanced Reasoning Model Integration**: Test that reasoning models (o3/o1-preview) are correctly used for planning phases and final quality enhancement, while standard models handle content generation. Verify model selection logic works correctly and fallback mechanisms function when advanced models are unavailable.\n\n**4. Cross-Section Consistency Testing**: Create test scenarios where information from one section (e.g., architecture decisions) must be reflected in other sections (e.g., security implications, cost impact). Verify the consolidation agent maintains consistency across all sections.\n\n**5. Context Preservation Validation**: Test that each specialized agent receives and utilizes full context from previous interview pillars, ensuring no information loss and that recommendations are tailored to the specific user requirements and technology choices.\n\n**6. Performance and Scalability Testing**: Measure document generation time with multiple agents, test concurrent agent execution, and verify the system can handle complex enterprise-level requirements while maintaining quality and coherence.",
+        "status": "pending",
+        "dependencies": [
+          13,
+          16,
+          11,
+          12
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 18,
+        "title": "Integrate OpenAI o3 Reasoning Models",
+        "description": "Upgrade the system to use OpenAI's new o3 reasoning models (o3, o3-mini, o4-mini) with enhanced reasoning capabilities for complex infrastructure planning tasks, while maintaining backward compatibility with existing GPT-4o calls.",
+        "details": "**OPENAI O3 REASONING MODELS INTEGRATION**:\n\n**1. OpenAI Client Enhancement**:\n- Update `core/openai_client.py` to support the new Responses API for o3 models:\n  ```python\n  class OpenAIClient:\n      def __init__(self):\n          self.reasoning_models = ['o3', 'o3-mini', 'o4-mini']\n          self.legacy_models = ['gpt-4o', 'gpt-4o-mini']\n      \n      async def create_reasoning_completion(self, messages, model='o3', effort='medium', reasoning_summary='auto', **kwargs):\n          if model in self.reasoning_models:\n              response = await self.client.chat.completions.create(\n                  model=model,\n                  messages=messages,\n                  reasoning={'effort': effort, 'summary': reasoning_summary},\n                  **kwargs\n              )\n              return response\n          else:\n              return await self.create_completion(messages, model, **kwargs)\n  ```\n\n**2. Agent Configuration for Reasoning Models**:\n- Create `config/reasoning_config.py` to define which agents use reasoning models:\n  ```python\n  REASONING_AGENT_CONFIG = {\n      'DocumentGeneratorAgent': {'model': 'o3', 'effort': 'high', 'reasoning_summary': 'detailed'},\n      'ArchitectureAgent': {'model': 'o3', 'effort': 'high', 'reasoning_summary': 'detailed'},\n      'SecurityAgent': {'model': 'o3-mini', 'effort': 'medium', 'reasoning_summary': 'auto'},\n      'CostAnalysisAgent': {'model': 'o3-mini', 'effort': 'medium', 'reasoning_summary': 'auto'},\n      'BusinessAgent': {'model': 'gpt-4o', 'effort': None, 'reasoning_summary': None},  # Keep legacy for simple tasks\n      'ProfilerAgent': {'model': 'gpt-4o', 'effort': None, 'reasoning_summary': None'}\n  }\n  ```\n\n**3. BaseAgent Reasoning Integration**:\n- Update `agents/base_agent.py` to support reasoning parameters:\n  ```python\n  class BaseAgent:\n      def __init__(self):\n          self.reasoning_config = REASONING_AGENT_CONFIG.get(self.__class__.__name__, {})\n          self.model = self.reasoning_config.get('model', 'gpt-4o')\n          self.effort = self.reasoning_config.get('effort')\n          self.reasoning_summary = self.reasoning_config.get('reasoning_summary')\n      \n      async def get_response(self, messages, **kwargs):\n          if self.model in ['o3', 'o3-mini', 'o4-mini']:\n              return await self.openai_client.create_reasoning_completion(\n                  messages=messages,\n                  model=self.model,\n                  effort=self.effort,\n                  reasoning_summary=self.reasoning_summary,\n                  **kwargs\n              )\n          else:\n              return await self.openai_client.create_completion(messages, self.model, **kwargs)\n  ```\n\n**4. Reasoning Token Handling**:\n- Add reasoning token tracking and cost calculation:\n  ```python\n  class ReasoningTokenTracker:\n      def __init__(self):\n          self.reasoning_tokens = 0\n          self.completion_tokens = 0\n      \n      def track_usage(self, response):\n          if hasattr(response, 'usage') and hasattr(response.usage, 'reasoning_tokens'):\n              self.reasoning_tokens += response.usage.reasoning_tokens\n              self.completion_tokens += response.usage.completion_tokens\n  ```\n\n**5. Enhanced Prompts for Reasoning Models**:\n- Update complex reasoning prompts in `core/prompts.py` to leverage o3's capabilities:\n  ```python\n  O3_ARCHITECTURE_PROMPT = '''\n  You are an expert infrastructure architect using advanced reasoning capabilities. \n  Think through this step-by-step, considering multiple architectural approaches, \n  trade-offs, and long-term implications. Provide detailed reasoning for your recommendations.\n  \n  User Requirements: {requirements}\n  Technology Stack: {tech_stack}\n  \n  Please reason through:\n  1. Architecture patterns that best fit these requirements\n  2. Scalability considerations and bottlenecks\n  3. Security implications and mitigation strategies\n  4. Cost optimization opportunities\n  5. Implementation complexity and timeline\n  '''\n  ```\n\n**6. Backward Compatibility Layer**:\n- Ensure all existing agent calls continue to work without modification\n- Add feature flags for gradual o3 model rollout\n- Implement fallback to GPT-4o if o3 models are unavailable\n\n**7. Performance and Cost Monitoring**:\n- Add metrics for reasoning token usage vs. output quality\n- Implement cost comparison between o3 and GPT-4o for different task types\n- Create dashboards for monitoring reasoning model performance",
+        "testStrategy": "**1. Model Integration Testing**: Verify that o3 models can be successfully called through the updated OpenAI client with reasoning parameters (effort levels, reasoning summaries). Test both successful responses and error handling for model unavailability.\n\n**2. Backward Compatibility Validation**: Ensure all existing agent functionality continues to work unchanged when using legacy GPT-4o models. Run existing test suites to verify no regressions in ProfilerAgent, BusinessAgent, and other agents configured to use legacy models.\n\n**3. Reasoning Quality Assessment**: Compare output quality between GPT-4o and o3 models for complex tasks like document generation and architecture planning. Evaluate reasoning coherence, depth of analysis, and accuracy of recommendations using standardized test scenarios.\n\n**4. Agent-Specific Configuration Testing**: Verify that each agent uses its configured model and reasoning parameters correctly. Test DocumentGeneratorAgent with o3 high-effort mode, SecurityAgent with o3-mini medium-effort, and ensure proper parameter passing.\n\n**5. Token Usage and Cost Monitoring**: Track reasoning tokens vs. completion tokens for o3 model calls. Validate cost calculations include reasoning tokens and compare total costs between o3 and GPT-4o for equivalent tasks.\n\n**6. Error Handling and Fallback Testing**: Test scenarios where o3 models are unavailable or rate-limited, ensuring graceful fallback to GPT-4o. Verify error messages are informative and system continues functioning.\n\n**7. Performance Benchmarking**: Measure response times for o3 vs GPT-4o models across different task complexities. Evaluate whether enhanced reasoning capabilities justify any performance differences for infrastructure planning workflows.",
+        "status": "pending",
+        "dependencies": [
+          2,
+          16
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 19,
+        "title": "Implement Weights & Biases Weave LLM Observability",
+        "description": "Integrate Weave for comprehensive LLM observability and monitoring by adding weave.init() at startup and @weave.op() decorators to all agent functions to track LLM calls, inputs, outputs, costs, and performance metrics.",
+        "details": "Implement comprehensive LLM observability using Weave (already in requirements.txt as weave==0.51.56):\n\n**1. Initialize Weave at Application Startup**\n```python\n# In main.py or core/__init__.py\nimport weave\nimport os\n\ndef initialize_weave():\n    project_name = os.environ.get(\"WEAVE_PROJECT_NAME\", \"infrastructure-interview-agent\")\n    weave.init(project_name)\n    print(f\"Weave initialized for project: {project_name}\")\n```\n\n**2. Add @weave.op() Decorators to All Agent Functions**\n```python\n# In agents/base_agent.py\nimport weave\n\nclass BaseAgent(ABC):\n    @weave.op()\n    async def process_topic(self, topic: str, state: Dict, openai_client) -> Dict:\n        # Existing implementation with automatic tracing\n        pass\n    \n    @weave.op()\n    def needs_follow_up(self, user_answer: str) -> bool:\n        # Existing implementation with automatic tracing\n        pass\n```\n\n**3. Instrument OpenAI Client Calls**\n```python\n# In core/openai_client.py\nimport weave\n\nclass OpenAIClient:\n    @weave.op()\n    async def call_agent(self, system_prompt: str, user_message: str, \n                        chat_history: Optional[List[Dict]] = None) -> str:\n        # Weave will automatically track:\n        # - Input parameters (prompts, messages)\n        # - OpenAI API response\n        # - Token usage and costs\n        # - Latency and performance metrics\n        return await self._make_openai_call(...)\n```\n\n**4. Track Agent-Specific Operations**\n```python\n# In agents/profiler.py, business.py, app.py, tribal.py, etc.\nimport weave\n\nclass ProfilerAgent(BaseAgent):\n    @weave.op()\n    async def assess_expertise(self, user_response: str, openai_client) -> str:\n        # Track expertise assessment logic\n        pass\n    \n    @weave.op()\n    async def gauge_complexity(self, project_description: str, openai_client) -> str:\n        # Track complexity assessment\n        pass\n```\n\n**5. Instrument Document Generation and Review Loop**\n```python\n# In agents/document_generator.py\nimport weave\n\nclass DocumentGeneratorAgent:\n    @weave.op()\n    async def generate_document(self, state: Dict, openai_client) -> str:\n        # Track document generation process\n        pass\n    \n    @weave.op()\n    async def apply_feedback(self, document: str, feedback: str, openai_client) -> str:\n        # Track document revision process\n        pass\n```\n\n**6. Add Environment Configuration**\n```python\n# Add to .env or environment setup\nWEAVE_PROJECT_NAME=infrastructure-interview-agent\nOPENAI_API_KEY=your_api_key_here\n```\n\n**7. Integration Points**\n- Call `initialize_weave()` in main.py before starting the interview\n- Ensure all agent methods that make LLM calls are decorated with @weave.op()\n- Add weave.op() to state management operations that involve LLM processing\n- Track user interactions and agent responses throughout the interview flow\n\n**Key Benefits:**\n- Automatic tracking of all OpenAI API calls with token usage and costs\n- Complete visibility into agent decision-making processes\n- Performance metrics for optimization\n- Debugging capabilities for troubleshooting agent behavior\n- Historical analysis of interview sessions",
+        "testStrategy": "**1. Weave Initialization Testing:**\n- Verify weave.init() is called successfully at startup\n- Test with valid and invalid project names\n- Confirm Weave dashboard shows the project\n\n**2. Decorator Integration Testing:**\n- Verify all agent methods are properly decorated with @weave.op()\n- Test that decorated functions still work correctly\n- Confirm traces appear in Weave dashboard for each agent operation\n\n**3. OpenAI Call Tracking:**\n- Make test calls through OpenAIClient and verify they appear in Weave\n- Check that input prompts, responses, token usage, and costs are tracked\n- Test retry logic still works with Weave instrumentation\n\n**4. End-to-End Interview Tracing:**\n- Run a complete interview session and verify all interactions are tracked\n- Check that agent transitions and state changes are visible\n- Confirm user inputs and agent responses are properly logged\n\n**5. Performance Impact Testing:**\n- Measure interview performance with and without Weave enabled\n- Ensure observability doesn't significantly impact user experience\n- Test error handling when Weave service is unavailable\n\n**6. Data Validation:**\n- Verify tracked data includes all required fields (inputs, outputs, metadata)\n- Test that sensitive information is not inadvertently logged\n- Confirm cost tracking accuracy against OpenAI billing\n\n**7. Dashboard Verification:**\n- Access Weave dashboard and verify all traces are visible\n- Test filtering and searching capabilities\n- Confirm performance metrics and cost analysis features work correctly",
+        "status": "pending",
+        "dependencies": [
+          3,
+          4,
+          5,
+          8
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 20,
+        "title": "Fix Agent Role Boundary Violations and Premature Solution Giving",
+        "description": "Implement strict role boundary enforcement for all information-gathering agents by adding explicit constraints to prevent them from providing solutions, recommendations, or implementation advice. Only the DocumentGeneratorAgent should provide solutions.",
+        "details": "**CRITICAL ARCHITECTURAL FIX: AGENT ROLE BOUNDARY ENFORCEMENT**\n\nThis task addresses a fundamental violation of the agent role separation principle where information-gathering agents are providing complete infrastructure solutions instead of staying within their designated roles.\n\n**ROOT CAUSE ANALYSIS**:\nThe ProfilerAgent and other information-gathering agents lack explicit constraints in their prompts to prevent solution-giving behavior. This causes role confusion and premature solutioning before all requirements are gathered.\n\n**IMPLEMENTATION PLAN**:\n\n**1. Update ProfilerAgent Prompt (HIGHEST PRIORITY)**:\n```python\n# In core/prompts.py - Update PROFILER_AGENT_PROMPT\nPROFILER_AGENT_PROMPT = \"\"\"You are the ProfilerAgent responsible for understanding the user's project and expertise level.\n\nCRITICAL CONSTRAINTS:\n- You MUST ONLY gather information about the user's project, expertise, and context\n- DO NOT provide solutions, recommendations, or implementation advice\n- DO NOT suggest technologies, architectures, or infrastructure approaches\n- DO NOT give any technical guidance or best practices\n- If the user asks for solutions, politely redirect: \"I'm currently gathering information about your project. We'll provide detailed recommendations after understanding all your requirements.\"\n\nYour role is strictly limited to:\n1. Understanding the project description and goals\n2. Assessing the user's technical expertise level\n3. Gathering context about existing infrastructure\n4. Identifying project constraints and requirements\n\n[Rest of existing prompt...]\n\"\"\"\n```\n\n**2. Update BusinessAgent Prompt**:\n```python\n# In core/prompts.py - Update BUSINESS_AGENT_PROMPT\nBUSINESS_AGENT_PROMPT = \"\"\"You are the BusinessAgent responsible for gathering business requirements.\n\nCRITICAL CONSTRAINTS:\n- You MUST ONLY gather information about business needs and requirements\n- DO NOT provide solutions, recommendations, or implementation advice\n- DO NOT suggest specific technologies or architectural patterns\n- DO NOT give cost estimates or performance recommendations\n- If asked for solutions, respond: \"I'm focused on understanding your business requirements. Our system will provide comprehensive recommendations after gathering all necessary information.\"\n\nYour role is strictly limited to:\n1. Understanding user base and traffic patterns\n2. Gathering availability and reliability requirements\n3. Identifying business constraints and compliance needs\n4. Collecting information about growth projections\n\n[Rest of existing prompt...]\n\"\"\"\n```\n\n**3. Update AppAgent Prompt**:\n```python\n# In core/prompts.py - Update APP_AGENT_PROMPT\nAPP_AGENT_PROMPT = \"\"\"You are the AppAgent responsible for gathering application requirements.\n\nCRITICAL CONSTRAINTS:\n- You MUST ONLY gather information about application needs\n- DO NOT provide solutions, recommendations, or implementation advice\n- DO NOT suggest frameworks, databases, or deployment strategies\n- DO NOT give architectural guidance or best practices\n- If asked for solutions, respond: \"I'm currently gathering information about your application requirements. Detailed technical recommendations will be provided after all requirements are collected.\"\n\nYour role is strictly limited to:\n1. Understanding application type and functionality\n2. Gathering data storage and processing needs\n3. Identifying integration requirements\n4. Collecting information about performance expectations\n\n[Rest of existing prompt...]\n\"\"\"\n```\n\n**4. Update TribalKnowledgeAgent Prompt**:\n```python\n# In core/prompts.py - Update TRIBAL_KNOWLEDGE_AGENT_PROMPT\nTRIBAL_KNOWLEDGE_AGENT_PROMPT = \"\"\"You are the TribalKnowledgeAgent responsible for gathering organizational constraints.\n\nCRITICAL CONSTRAINTS:\n- You MUST ONLY gather information about organizational preferences and constraints\n- DO NOT provide solutions, recommendations, or implementation advice\n- DO NOT suggest tools, platforms, or methodologies\n- DO NOT give opinions on technology choices\n- If asked for solutions, respond: \"I'm gathering information about your organization's constraints. Solutions will be provided after understanding all requirements.\"\n\nYour role is strictly limited to:\n1. Understanding team expertise and preferences\n2. Gathering budget and timeline constraints\n3. Identifying existing tools and platforms\n4. Collecting compliance and security requirements\n\n[Rest of existing prompt...]\n\"\"\"\n```\n\n**5. Create Role Boundary Validation Utility**:\n```python\n# Create utils/role_boundary_validator.py\nimport re\nfrom typing import List, Tuple\n\nclass RoleBoundaryValidator:\n    \"\"\"Validates that agent responses don't violate role boundaries\"\"\"\n    \n    # Solution-indicating patterns\n    SOLUTION_PATTERNS = [\n        r'\\b(recommend|suggest|should use|consider using|best practice|solution|approach)\\b',\n        r'\\b(AWS|Azure|GCP|Kubernetes|Docker|Terraform)\\b.*\\b(would be|is ideal|works well)\\b',\n        r'\\b(you (should|could|might want to)|I (recommend|suggest))\\b',\n        r'\\b(architecture|design|implementation|deployment)\\s+(would|should|could)\\b',\n        r'\\b(cost.*estimate|performance.*recommendation|security.*suggestion)\\b'\n    ]\n    \n    @classmethod\n    def validate_response(cls, response: str, agent_type: str) -> Tuple[bool, List[str]]:\n        \"\"\"\n        Validates that response doesn't contain solutions for info-gathering agents\n        Returns: (is_valid, list_of_violations)\n        \"\"\"\n        if agent_type == \"document_generator\":\n            return True, []  # DocumentGeneratorAgent is allowed to give solutions\n        \n        violations = []\n        for pattern in cls.SOLUTION_PATTERNS:\n            matches = re.findall(pattern, response, re.IGNORECASE)\n            if matches:\n                violations.extend(matches)\n        \n        return len(violations) == 0, violations\n    \n    @classmethod\n    def create_violation_report(cls, agent_type: str, response: str, violations: List[str]) -> str:\n        \"\"\"Creates a detailed violation report for logging\"\"\"\n        return f\"\"\"\nROLE BOUNDARY VIOLATION DETECTED\nAgent Type: {agent_type}\nViolations Found: {len(violations)}\nViolation Patterns: {', '.join(set(violations))}\nResponse Preview: {response[:200]}...\n\"\"\"\n```\n\n**6. Integrate Validation into BaseAgent**:\n```python\n# In agents/base_agent.py - Add validation after LLM response\nfrom utils.role_boundary_validator import RoleBoundaryValidator\n\nclass BaseAgent:\n    async def process_message(self, message: str, state: Dict, openai_client) -> str:\n        # Existing LLM call logic...\n        response = await openai_client.create_completion(messages)\n        \n        # Validate role boundaries\n        is_valid, violations = RoleBoundaryValidator.validate_response(\n            response, \n            self.agent_type\n        )\n        \n        if not is_valid:\n            # Log violation for monitoring\n            logger.warning(RoleBoundaryValidator.create_violation_report(\n                self.agent_type, \n                response, \n                violations\n            ))\n            \n            # Request regeneration with stronger constraints\n            messages.append({\n                \"role\": \"system\",\n                \"content\": \"CRITICAL: Your response violated role boundaries by providing solutions. You must ONLY gather information. Regenerate your response without any recommendations or solutions.\"\n            })\n            response = await openai_client.create_completion(messages)\n        \n        return response\n```\n\n**7. Add Monitoring and Alerting**:\n```python\n# In core/monitoring.py\nclass RoleBoundaryMonitor:\n    \"\"\"Tracks and reports role boundary violations\"\"\"\n    \n    def __init__(self):\n        self.violations = []\n    \n    def record_violation(self, agent_type: str, violation_details: dict):\n        self.violations.append({\n            \"timestamp\": datetime.now(),\n            \"agent_type\": agent_type,\n            \"details\": violation_details\n        })\n        \n        # Alert if violations exceed threshold\n        recent_violations = [v for v in self.violations \n                           if v[\"timestamp\"] > datetime.now() - timedelta(minutes=5)]\n        if len(recent_violations) > 3:\n            self.send_alert(f\"High rate of role boundary violations: {len(recent_violations)} in last 5 minutes\")\n```\n\n**8. Update System Prompts for Clarity**:\n```python\n# Add to core/prompts.py\nROLE_BOUNDARY_REMINDER = \"\"\"\nREMEMBER YOUR ROLE BOUNDARIES:\n- ProfilerAgent: ONLY gather project information\n- BusinessAgent: ONLY gather business requirements  \n- AppAgent: ONLY gather application requirements\n- TribalKnowledgeAgent: ONLY gather organizational constraints\n- BestPracticesAgent: ONLY identify gaps in requirements\n- DocumentGeneratorAgent: ONLY this agent provides solutions\n\nIf you're not the DocumentGeneratorAgent, you MUST NOT provide any solutions, recommendations, or implementation advice.\n\"\"\"\n```\n\n**CRITICAL IMPLEMENTATION NOTES**:\n1. This fix must be deployed immediately as it affects core system behavior\n2. All existing prompts must be audited for solution-giving language\n3. The validation system should be active but not block responses initially (log-only mode)\n4. After validation, gradually move to enforcement mode\n5. Monitor violation rates to ensure agents adapt to new constraints",
+        "testStrategy": "**COMPREHENSIVE TESTING STRATEGY FOR ROLE BOUNDARY ENFORCEMENT**:\n\n**1. Prompt Constraint Verification**:\n- Verify all information-gathering agent prompts contain explicit \"DO NOT provide solutions\" constraints\n- Check that constraints are clear, unambiguous, and prominently placed\n- Ensure each agent type has role-specific constraint language\n\n**2. Role Boundary Violation Detection Testing**:\n```python\n# Test cases for RoleBoundaryValidator\ntest_violations = [\n    (\"I recommend using AWS Lambda for this\", [\"recommend\", \"AWS\"]),\n    (\"You should consider Kubernetes\", [\"should\", \"consider\"]),\n    (\"The best practice is to use Docker\", [\"best practice\", \"Docker\"]),\n    (\"Azure would be ideal for your needs\", [\"Azure\", \"would be\"]),\n    (\"For cost optimization, I suggest using spot instances\", [\"suggest\"])\n]\n\n# Test that ProfilerAgent responses are caught\nprofiler_response = \"Based on your requirements, I recommend using AWS with Kubernetes\"\nis_valid, violations = RoleBoundaryValidator.validate_response(profiler_response, \"profiler\")\nassert not is_valid\nassert len(violations) > 0\n```\n\n**3. Agent Behavior Testing**:\n- Create test scenarios where users explicitly ask for solutions during information gathering\n- Verify agents redirect appropriately: \"I'm currently gathering information...\"\n- Test that agents maintain conversation flow while avoiding solutions\n\n**4. End-to-End Violation Testing**:\n```python\n# Simulate conversation that triggers violations\ntest_conversation = {\n    \"profiler\": [\n        \"What technology stack should I use?\",\n        \"Can you recommend a database?\",\n        \"What's the best cloud provider?\"\n    ],\n    \"business\": [\n        \"How should I architect for high availability?\",\n        \"What's the recommended scaling strategy?\"\n    ]\n}\n\n# Each should result in information gathering, not solutions\nfor agent_type, questions in test_conversation.items():\n    for question in questions:\n        response = await agent.process_message(question, state, openai_client)\n        is_valid, _ = RoleBoundaryValidator.validate_response(response, agent_type)\n        assert is_valid, f\"{agent_type} provided solutions for: {question}\"\n```\n\n**5. Validation System Testing**:\n- Test pattern matching for all solution-indicating patterns\n- Verify DocumentGeneratorAgent is exempt from validation\n- Test violation logging and reporting functionality\n- Ensure validation doesn't break normal conversation flow\n\n**6. Regeneration Testing**:\n- Test that when violations are detected, the system requests regeneration\n- Verify regenerated responses comply with role boundaries\n- Test that multiple regeneration attempts are handled gracefully\n\n**7. Monitoring and Alerting Testing**:\n- Verify violations are properly logged with full context\n- Test threshold-based alerting (e.g., >3 violations in 5 minutes)\n- Ensure monitoring doesn't impact system performance\n\n**8. Integration Testing**:\n- Run full interview flows with aggressive solution-seeking users\n- Verify all agents maintain role boundaries throughout\n- Test that final document generation still provides comprehensive solutions\n- Ensure role boundaries don't prevent proper information gathering\n\n**9. Regression Testing**:\n- Create test suite that runs after each prompt update\n- Automated checks for solution-giving language in prompts\n- Verify no reintroduction of solution patterns in agent responses\n\n**10. Performance Testing**:\n- Measure impact of validation on response times\n- Test system behavior under high violation rates\n- Verify validation doesn't cause infinite regeneration loops",
+        "status": "pending",
+        "dependencies": [
+          4,
+          5,
+          6
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 21,
+        "title": "Implement UX Flow Management and User Progress Indication",
+        "description": "Create a comprehensive progress tracking and flow management system that provides clear visual indicators of interview progress, step transitions, time estimates, and section completion status to eliminate user confusion about the interview process.",
+        "details": "Implement a complete UX flow management system to address user confusion about interview progress:\n\n**1. Create Progress Tracking Component (core/progress_tracker.py):**\n```python\nfrom typing import Dict, List, Optional\nfrom datetime import datetime, timedelta\n\nclass ProgressTracker:\n    def __init__(self):\n        self.steps = [\n            {\"id\": \"profiler\", \"name\": \"User Profile\", \"estimated_time\": 3},\n            {\"id\": \"business\", \"name\": \"Business Requirements\", \"estimated_time\": 10},\n            {\"id\": \"app\", \"name\": \"Application Details\", \"estimated_time\": 10},\n            {\"id\": \"tribal\", \"name\": \"Organizational Context\", \"estimated_time\": 8},\n            {\"id\": \"best_practices\", \"name\": \"Best Practices Review\", \"estimated_time\": 2},\n            {\"id\": \"document\", \"name\": \"Document Generation\", \"estimated_time\": 2},\n            {\"id\": \"review\", \"name\": \"Review & Finalization\", \"estimated_time\": 5}\n        ]\n        self.current_step = 0\n        self.step_start_times = {}\n        self.completed_steps = set()\n    \n    def get_total_steps(self) -> int:\n        return len(self.steps)\n    \n    def get_current_step_info(self) -> Dict:\n        if self.current_step < len(self.steps):\n            return self.steps[self.current_step]\n        return None\n    \n    def get_progress_percentage(self) -> float:\n        return (self.current_step / len(self.steps)) * 100\n    \n    def get_estimated_remaining_time(self) -> int:\n        remaining_steps = self.steps[self.current_step:]\n        return sum(step[\"estimated_time\"] for step in remaining_steps)\n    \n    def mark_step_complete(self, step_id: str):\n        self.completed_steps.add(step_id)\n        if self.current_step < len(self.steps) - 1:\n            self.current_step += 1\n```\n\n**2. Create Visual Progress Display Component (ui/progress_display.py):**\n```python\nclass ProgressDisplay:\n    def __init__(self):\n        self.bar_width = 50\n        self.colors = {\n            'complete': '\\033[92m',    # Green\n            'current': '\\033[93m',     # Yellow\n            'pending': '\\033[90m',     # Gray\n            'reset': '\\033[0m'\n        }\n    \n    def render_progress_bar(self, current: int, total: int) -> str:\n        percentage = (current / total) * 100\n        filled = int(self.bar_width * current // total)\n        bar = '█' * filled + '░' * (self.bar_width - filled)\n        return f\"[{bar}] {percentage:.0f}% ({current}/{total} steps)\"\n    \n    def render_step_indicator(self, steps: List[Dict], current_idx: int) -> str:\n        lines = []\n        for i, step in enumerate(steps):\n            if i < current_idx:\n                status = f\"{self.colors['complete']}✓{self.colors['reset']}\"\n            elif i == current_idx:\n                status = f\"{self.colors['current']}▶{self.colors['reset']}\"\n            else:\n                status = f\"{self.colors['pending']}○{self.colors['reset']}\"\n            \n            lines.append(f\"  {status} {step['name']} (~{step['estimated_time']} min)\")\n        \n        return \"\\n\".join(lines)\n    \n    def render_transition_message(self, from_step: str, to_step: str) -> str:\n        return f\"\\n{self.colors['current']}{'='*60}{self.colors['reset']}\\n\" \\\n               f\"✅ Completed: {from_step}\\n\" \\\n               f\"➡️  Moving to: {to_step}\\n\" \\\n               f\"{self.colors['current']}{'='*60}{self.colors['reset']}\\n\"\n```\n\n**3. Integrate Progress Tracking into Main Interview Flow (main.py modifications):**\n```python\nasync def run_interview():\n    state_manager = StateManager()\n    openai_client = OpenAIClient()\n    progress_tracker = ProgressTracker()\n    progress_display = ProgressDisplay()\n    \n    # Show initial overview\n    print(\"\\n🚀 Infrastructure Requirements Interview\")\n    print(\"=\"*60)\n    print(\"\\nThis interview will guide you through 7 steps to gather\")\n    print(\"comprehensive infrastructure requirements for your project.\")\n    print(f\"\\nEstimated total time: ~{sum(s['estimated_time'] for s in progress_tracker.steps)} minutes\")\n    print(\"\\nInterview Flow:\")\n    print(progress_display.render_step_indicator(progress_tracker.steps, 0))\n    print(\"\\nYou can type 'progress' at any time to see your current status.\")\n    print(\"=\"*60)\n    \n    input(\"\\nPress Enter to begin...\")\n    \n    # Modified agent execution with progress updates\n    for step_idx, step in enumerate(progress_tracker.steps):\n        # Show current progress\n        print(f\"\\n{progress_display.render_progress_bar(step_idx, len(progress_tracker.steps))}\")\n        print(f\"\\n📍 Step {step_idx + 1}/{len(progress_tracker.steps)}: {step['name']}\")\n        print(f\"⏱️  Estimated time: {step['estimated_time']} minutes\")\n        print(f\"⏳ Remaining time: ~{progress_tracker.get_estimated_remaining_time()} minutes\")\n        print(\"-\"*60)\n        \n        # Execute the appropriate agent/step\n        if step['id'] == 'profiler':\n            await execute_profiler_agent(...)\n        elif step['id'] == 'business':\n            await execute_business_agent(...)\n        # ... other agents\n        \n        # Mark step complete and show transition\n        progress_tracker.mark_step_complete(step['id'])\n        \n        if step_idx < len(progress_tracker.steps) - 1:\n            next_step = progress_tracker.steps[step_idx + 1]\n            print(progress_display.render_transition_message(\n                step['name'], \n                next_step['name']\n            ))\n            \n            # Brief pause for readability\n            await asyncio.sleep(2)\n```\n\n**4. Add Progress Command Handler (ui/command_handler.py):**\n```python\nclass CommandHandler:\n    def __init__(self, progress_tracker, progress_display):\n        self.progress_tracker = progress_tracker\n        self.progress_display = progress_display\n        self.commands = {\n            'progress': self.show_progress,\n            'time': self.show_time_info,\n            'help': self.show_help\n        }\n    \n    async def handle_command(self, user_input: str) -> bool:\n        \"\"\"Returns True if input was a command, False otherwise\"\"\"\n        if user_input.lower().strip() in self.commands:\n            await self.commands[user_input.lower().strip()]()\n            return True\n        return False\n    \n    async def show_progress(self):\n        current = self.progress_tracker.current_step\n        total = self.progress_tracker.get_total_steps()\n        \n        print(\"\\n📊 Current Progress:\")\n        print(self.progress_display.render_progress_bar(current, total))\n        print(\"\\nStep Status:\")\n        print(self.progress_display.render_step_indicator(\n            self.progress_tracker.steps, \n            current\n        ))\n```\n\n**5. Add Section Completion Indicators:**\n```python\ndef show_pillar_completion(pillar_name: str, key_points: List[str]):\n    \"\"\"Display clear completion message for each major section\"\"\"\n    print(f\"\\n{'='*60}\")\n    print(f\"✅ {pillar_name} COMPLETE!\")\n    print(f\"{'='*60}\")\n    print(\"\\n📋 Key Information Gathered:\")\n    for point in key_points[:5]:  # Show top 5 key points\n        print(f\"  • {point}\")\n    print(f\"\\n💾 All responses saved and will be incorporated into your\")\n    print(f\"   infrastructure document.\")\n    print(f\"{'='*60}\\n\")\n```\n\n**6. Modify Agent Base Class to Support Progress Updates:**\n```python\nclass BaseAgent(ABC):\n    async def run(self, state: Dict, openai_client, progress_display=None):\n        topic_count = len(self.topics)\n        \n        for idx, topic in enumerate(self.topics):\n            if progress_display:\n                # Show mini-progress within the agent\n                print(f\"\\n  [{idx+1}/{topic_count}] {topic.replace('_', ' ').title()}\")\n            \n            result = await self.process_topic(topic, state, openai_client)\n            # ... rest of implementation\n```",
+        "testStrategy": "**1. Progress Tracking Component Testing:**\n- Test initialization of progress tracker with correct step definitions\n- Verify step progression logic (current_step increments correctly)\n- Test progress percentage calculations (0%, 50%, 100% scenarios)\n- Verify time estimation calculations for remaining steps\n- Test edge cases (completing last step, invalid step IDs)\n\n**2. Visual Display Testing:**\n- Test progress bar rendering at various completion levels (0%, 25%, 50%, 75%, 100%)\n- Verify step indicator shows correct symbols (✓ for complete, ▶ for current, ○ for pending)\n- Test color codes render correctly in different terminal environments\n- Verify transition messages format properly with correct step names\n\n**3. Integration Testing:**\n- Run full interview flow and verify progress updates at each step\n- Test that initial overview displays all 7 steps with time estimates\n- Verify transition messages appear between each major section\n- Test that progress bar updates correctly after each step completion\n- Ensure total time estimate matches sum of individual step estimates\n\n**4. User Command Testing:**\n- Test 'progress' command displays current status at any point\n- Verify command handler doesn't interfere with normal interview responses\n- Test that progress display is non-blocking and doesn't interrupt flow\n- Verify help command shows available commands\n\n**5. Section Completion Testing:**\n- Test pillar completion messages show after each major agent completes\n- Verify key points are extracted and displayed (max 5)\n- Test completion indicators for all pillars (Business, App, Tribal)\n- Ensure completion messages are visually distinct and clear\n\n**6. User Experience Testing:**\n- Conduct user testing to verify confusion about flow is eliminated\n- Test with users unfamiliar with the system to ensure clarity\n- Verify time estimates are reasonably accurate (within 20% of actual)\n- Test that users understand when sections are complete\n- Ensure users can track their progress throughout the interview\n\n**7. Error Handling:**\n- Test progress tracking continues correctly if an agent fails\n- Verify progress display handles terminal resize gracefully\n- Test behavior when user interrupts during transitions\n- Ensure progress state is maintained if interview is paused/resumed",
+        "status": "pending",
+        "dependencies": [
+          8,
+          9
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 22,
+        "title": "Implement Context Understanding and Disambiguation System",
+        "description": "Create a sophisticated context analysis system that understands user intent beyond literal word matching, considering conversation flow, user expertise level, and semantic meaning to properly disambiguate ambiguous user responses and prevent misinterpretation of context.",
+        "details": "**CONTEXT UNDERSTANDING AND DISAMBIGUATION SYSTEM**:\n\n**1. Context Analysis Engine**:\nCreate `core/context_analyzer.py`:\n```python\nimport re\nfrom typing import Dict, List, Tuple, Optional\nfrom dataclasses import dataclass\nimport nltk\nfrom nltk.corpus import wordnet\nimport spacy\n\n@dataclass\nclass ContextClue:\n    type: str  # 'conversation_flow', 'expertise_level', 'semantic', 'domain'\n    confidence: float\n    interpretation: str\n\nclass ContextAnalyzer:\n    def __init__(self):\n        self.nlp = spacy.load(\"en_core_web_sm\")\n        self.conversation_patterns = {\n            'clarification': [\n                (r\"what\\?.*not\\s+(down|done)\", 'completion_query'),\n                (r\"what\\s+do\\s+you\\s+mean\", 'clarification_request'),\n                (r\"i\\s+don't\\s+understand\", 'confusion_indicator')\n            ],\n            'correction': [\n                (r\"no,?\\s*i\\s+meant\", 'user_correction'),\n                (r\"actually\", 'correction_indicator')\n            ]\n        }\n        self.domain_contexts = {\n            'infrastructure': ['server', 'deployment', 'scaling', 'availability'],\n            'business': ['users', 'traffic', 'revenue', 'customers'],\n            'technical': ['api', 'database', 'frontend', 'backend']\n        }\n    \n    async def analyze_intent(self, user_input: str, conversation_history: List[Dict], \n                           user_profile: Dict) -> Dict:\n        # Collect context clues from multiple sources\n        clues = []\n        \n        # 1. Analyze conversation flow\n        flow_clues = self._analyze_conversation_flow(user_input, conversation_history)\n        clues.extend(flow_clues)\n        \n        # 2. Consider user expertise level\n        expertise_clues = self._analyze_expertise_context(user_input, user_profile)\n        clues.extend(expertise_clues)\n        \n        # 3. Semantic analysis\n        semantic_clues = self._analyze_semantic_meaning(user_input, conversation_history)\n        clues.extend(semantic_clues)\n        \n        # 4. Domain context\n        domain_clues = self._analyze_domain_context(user_input, conversation_history)\n        clues.extend(domain_clues)\n        \n        # Synthesize interpretation\n        return self._synthesize_interpretation(user_input, clues)\n```\n\n**2. Ambiguity Detection and Resolution**:\nExtend `core/context_analyzer.py`:\n```python\nclass AmbiguityResolver:\n    def __init__(self, context_analyzer: ContextAnalyzer):\n        self.context_analyzer = context_analyzer\n        self.ambiguous_terms = {\n            'down': ['unavailable', 'completed', 'decreased'],\n            'up': ['available', 'increased', 'ready'],\n            'done': ['completed', 'finished', 'deployed'],\n            'scale': ['resize', 'grow', 'measure']\n        }\n    \n    async def detect_ambiguity(self, user_input: str, context: Dict) -> Optional[Dict]:\n        # Tokenize and check for ambiguous terms\n        tokens = user_input.lower().split()\n        ambiguities = []\n        \n        for token in tokens:\n            if token in self.ambiguous_terms:\n                # Check if context provides clear interpretation\n                possible_meanings = self.ambiguous_terms[token]\n                context_interpretation = await self._interpret_from_context(\n                    token, possible_meanings, context\n                )\n                \n                if not context_interpretation['confident']:\n                    ambiguities.append({\n                        'term': token,\n                        'possible_meanings': possible_meanings,\n                        'likely_meaning': context_interpretation['best_guess'],\n                        'confidence': context_interpretation['confidence']\n                    })\n        \n        return {\n            'has_ambiguity': len(ambiguities) > 0,\n            'ambiguities': ambiguities,\n            'clarification_needed': any(a['confidence'] < 0.7 for a in ambiguities)\n        }\n    \n    async def generate_clarification(self, ambiguity_info: Dict) -> str:\n        # Generate natural clarification questions\n        if not ambiguity_info['clarification_needed']:\n            return None\n        \n        clarifications = []\n        for ambiguity in ambiguity_info['ambiguities']:\n            if ambiguity['confidence'] < 0.7:\n                term = ambiguity['term']\n                meanings = ambiguity['possible_meanings']\n                clarifications.append(\n                    f\"When you said '{term}', did you mean {' or '.join(meanings)}?\"\n                )\n        \n        return \" \".join(clarifications)\n```\n\n**3. Integration with Existing Agents**:\nUpdate `agents/base_agent.py`:\n```python\nfrom core.context_analyzer import ContextAnalyzer, AmbiguityResolver\n\nclass BaseAgent:\n    def __init__(self, name: str, topics: List[str], system_prompt: str):\n        self.name = name\n        self.topics = topics\n        self.system_prompt = system_prompt\n        self.context_analyzer = ContextAnalyzer()\n        self.ambiguity_resolver = AmbiguityResolver(self.context_analyzer)\n    \n    async def process_message(self, user_input: str, state: Dict, openai_client) -> str:\n        # Analyze context and intent\n        context_analysis = await self.context_analyzer.analyze_intent(\n            user_input,\n            state.get('chat_history', {}).get(self.name, []),\n            state.get('user_profile', {})\n        )\n        \n        # Check for ambiguities\n        ambiguity_info = await self.ambiguity_resolver.detect_ambiguity(\n            user_input, context_analysis\n        )\n        \n        if ambiguity_info['clarification_needed']:\n            # Ask for clarification instead of making assumptions\n            clarification = await self.ambiguity_resolver.generate_clarification(\n                ambiguity_info\n            )\n            return clarification\n        \n        # Process with enhanced context\n        enhanced_prompt = self._enhance_prompt_with_context(\n            self.system_prompt, context_analysis\n        )\n        \n        return await openai_client.call_agent(\n            enhanced_prompt,\n            user_input,\n            state.get('chat_history', {}).get(self.name, [])\n        )\n```\n\n**4. Conversation Flow Analyzer**:\nImplement conversation flow analysis methods:\n```python\ndef _analyze_conversation_flow(self, user_input: str, history: List[Dict]) -> List[ContextClue]:\n    clues = []\n    \n    # Check if this is a response to a question\n    if history and history[-1]['role'] == 'assistant':\n        last_assistant_msg = history[-1]['content'].lower()\n        \n        # Check for question patterns in last message\n        if any(pattern in last_assistant_msg for pattern in ['?', 'how many', 'what', 'when']):\n            # User is likely answering a question\n            clues.append(ContextClue(\n                type='conversation_flow',\n                confidence=0.8,\n                interpretation='answer_to_question'\n            ))\n            \n            # Specific pattern matching for common misunderstandings\n            if 'availability' in last_assistant_msg and 'down' in user_input.lower():\n                # Assistant asked about availability, user might mean downtime percentage\n                clues.append(ContextClue(\n                    type='conversation_flow',\n                    confidence=0.9,\n                    interpretation='downtime_percentage'\n                ))\n    \n    # Check for follow-up patterns\n    if re.search(r'^(yes|no|yeah|nope)', user_input.lower()):\n        clues.append(ContextClue(\n            type='conversation_flow',\n            confidence=0.9,\n            interpretation='confirmation_response'\n        ))\n    \n    return clues\n```\n\n**5. Expertise-Based Context**:\n```python\ndef _analyze_expertise_context(self, user_input: str, user_profile: Dict) -> List[ContextClue]:\n    clues = []\n    expertise_level = user_profile.get('expertise_level', 'intermediate')\n    \n    # Adjust interpretation based on expertise\n    if expertise_level == 'beginner':\n        # Beginners less likely to use technical jargon correctly\n        if any(term in user_input.lower() for term in ['down', 'up', 'scale']):\n            clues.append(ContextClue(\n                type='expertise_level',\n                confidence=0.6,\n                interpretation='possible_non_technical_usage'\n            ))\n    elif expertise_level == 'expert':\n        # Experts more likely to use precise technical terms\n        clues.append(ContextClue(\n            type='expertise_level',\n            confidence=0.8,\n            interpretation='technical_usage_likely'\n        ))\n    \n    return clues\n```\n\n**6. Semantic Similarity Analysis**:\n```python\ndef _analyze_semantic_meaning(self, user_input: str, history: List[Dict]) -> List[ContextClue]:\n    clues = []\n    doc = self.nlp(user_input)\n    \n    # Use word embeddings to find semantic similarities\n    for token in doc:\n        if token.text.lower() in ['down', 'done']:\n            # Check phonetic similarity\n            if self._phonetic_similarity('down', 'done') > 0.8:\n                clues.append(ContextClue(\n                    type='semantic',\n                    confidence=0.7,\n                    interpretation='possible_phonetic_confusion'\n                ))\n    \n    # Context window analysis\n    if history:\n        recent_context = ' '.join([msg['content'] for msg in history[-3:]])\n        context_doc = self.nlp(recent_context)\n        \n        # Calculate semantic similarity between user input and recent context\n        similarity = doc.similarity(context_doc)\n        if similarity > 0.7:\n            clues.append(ContextClue(\n                type='semantic',\n                confidence=similarity,\n                interpretation='high_context_relevance'\n            ))\n    \n    return clues\n```",
+        "testStrategy": "**1. Ambiguity Detection Testing**:\n- Create test cases with known ambiguous inputs like \"What? We're not down?\" in different contexts\n- Verify the system correctly identifies ambiguity and generates appropriate clarification questions\n- Test with various homophones and similar-sounding words (down/done, to/two, there/their)\n\n**2. Context Flow Analysis Testing**:\n- Test conversation flow tracking by simulating multi-turn conversations\n- Verify the system correctly interprets responses based on previous questions\n- Test edge cases where user changes topic mid-conversation\n\n**3. Expertise-Based Interpretation Testing**:\n- Test same ambiguous inputs with different user expertise levels (beginner/intermediate/expert)\n- Verify interpretations adjust appropriately based on user profile\n- Test technical vs non-technical interpretation of common terms\n\n**4. Integration Testing**:\n- Test integration with existing agents to ensure context analysis doesn't break current functionality\n- Verify enhanced prompts improve response accuracy\n- Test that clarification questions are asked when confidence is low\n\n**5. Performance Testing**:\n- Measure latency impact of context analysis on response times\n- Ensure analysis completes within acceptable time limits (<500ms)\n- Test with various conversation history lengths\n\n**6. Accuracy Validation**:\n- Create test suite with 50+ ambiguous statements and their correct interpretations\n- Measure accuracy of disambiguation across different context types\n- Validate that false positive rate for ambiguity detection is below 10%",
+        "status": "pending",
+        "dependencies": [
+          2,
+          3,
+          5,
+          18
+        ],
+        "priority": "high",
         "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-07-12T23:55:27.349Z",
-      "updated": "2025-07-12T23:55:27.349Z",
+      "updated": "2025-07-13T01:51:12.956Z",
       "description": "Tasks for master context"
     }
   }

@@ -363,8 +363,8 @@ async def run_pillar(pillar_name, topics, state):
                 {"role": "user", "content": user_answer}
             ])
             
-            # Check if we need follow-up
-            if needs_follow_up(user_answer):
+            # Check if we need follow-up using LLM analysis
+            if await needs_follow_up_llm(user_answer, agent_response):
                 follow_up_count += 1
                 state["state"]["follow_up_counts"][f"{pillar_name}.{topic}"] = follow_up_count
             else:
@@ -376,32 +376,71 @@ async def run_pillar(pillar_name, topics, state):
                 {"agent": pillar_name, "role": "user", "content": user_answer}
             ])
     
-    # Extract summary after pillar completes
-    state["summaries"][pillar_name] = await summarize_pillar(
+    # Extract summary after pillar completes using AI summarization
+    state["summaries"][pillar_name] = await summarize_pillar_llm(
         pillar_name, 
         state["chat_history"][pillar_name]
     )
     
     return state
 
-def needs_follow_up(user_answer):
+async def needs_follow_up_llm(user_answer, agent_question):
     """
-    Determine if user's answer indicates they need clarification or follow-up
+    Use LLM to determine if user's answer indicates they need clarification or follow-up
+    No keyword matching - pure AI-based understanding
     """
-    unclear_indicators = [
-        "what do you mean",
-        "i don't understand", 
-        "can you explain",
-        "i'm not sure",
-        "maybe",
-        "i think",
-        "possibly",
-        "huh?",
-        "?"
-    ]
+    prompt = f"""
+    Analyze if this user response indicates confusion, uncertainty, or need for clarification:
     
-    answer_lower = user_answer.lower()
-    return any(indicator in answer_lower for indicator in unclear_indicators)
+    Agent Question: {agent_question}
+    User Response: {user_answer}
+    
+    Respond with only "YES" if follow-up is needed, "NO" if the answer is clear and complete.
+    
+    Follow-up is needed when the user:
+    - Asks for clarification or explanation
+    - Gives vague or uncertain responses
+    - Shows confusion about the topic
+    - Provides incomplete information
+    """
+    
+    response = await client.chat.completions.create(
+        model="gpt-4o-mini",  # Fast model for quick decisions
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.1,
+        max_tokens=10
+    )
+    
+    return response.choices[0].message.content.strip().upper() == "YES"
+
+async def summarize_pillar_llm(pillar_name, chat_history):
+    """
+    Use dedicated LLM call to create comprehensive summaries
+    No rule-based extraction - pure AI understanding
+    """
+    conversation = "\n".join([
+        f"{msg['role']}: {msg['content']}" 
+        for msg in chat_history
+    ])
+    
+    prompt = f"""
+    Create a comprehensive summary of this {pillar_name} pillar conversation.
+    Extract all specific details, numbers, requirements, and preferences mentioned.
+    
+    Conversation:
+    {conversation}
+    
+    Return a structured JSON summary capturing all relevant information.
+    """
+    
+    response = await client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2,
+        max_tokens=1000
+    )
+    
+    return response.choices[0].message.content
 ```
 
 ### OpenAI SDK Integration
