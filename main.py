@@ -54,6 +54,8 @@ async def main():
         print("and I'll help fill in the gaps with best practices.")
         print("You can skip any question by saying 'skip' or 'I don't know'.")
         print()
+        print("📝 Note: Please type your responses (avoid copy-pasting or multi-line text)")
+        print()
         
         # Sequential pillar execution
         print("📋 Step 1: Understanding you and your project...")

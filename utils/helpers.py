@@ -45,7 +45,166 @@ Respond with exactly "FOLLOW_UP_NEEDED" or "COMPLETE" - nothing else."""
         # Fallback to basic heuristics if LLM fails
         return len(user_answer.strip()) < 3 or "?" in user_answer
 
+async def is_skip_request_llm(user_answer: str, openai_client) -> bool:
+    """
+    Determine if user wants to skip a question using LLM semantic analysis
+    
+    Args:
+        user_answer: The user's response
+        openai_client: OpenAI client for LLM analysis
+        
+    Returns:
+        True if the user wants to skip the question
+    """
+    prompt = f"""You are analyzing a user's response to determine if they want to skip or pass on answering a question.
 
+USER RESPONSE: {user_answer}
+
+Analyze if this response indicates the user wants to skip the question.
+
+Consider:
+- Explicit skip requests ("skip", "pass", "next question")
+- Uncertainty expressions that suggest skipping ("I don't know", "not sure", "no idea")
+- Dismissive responses ("not applicable", "n/a", "doesn't apply")
+- Lack of information ("can't answer", "don't have info")
+- Intent to move on rather than engage with the topic
+
+DO NOT consider as skip requests:
+- Genuine attempts to answer, even if incomplete
+- Questions asking for clarification
+- Expressions of uncertainty but willingness to try
+
+Respond with exactly "SKIP" or "ANSWER" - nothing else."""
+
+    try:
+        result = await openai_client.call_agent(
+            "You are a conversation analysis expert specialized in understanding user intent.",
+            prompt,
+            []  # No chat history needed for this analysis
+        )
+        return "SKIP" in result.upper()
+    except Exception as e:
+        # Fallback to basic heuristics if LLM fails
+        skip_indicators = ["skip", "pass", "idk", "don't know", "no idea", "n/a"]
+        return any(indicator in user_answer.lower() for indicator in skip_indicators)
+
+async def extract_expertise_level_llm(user_input: str, openai_client) -> Optional[str]:
+    """
+    Extract expertise level from user input using LLM semantic analysis
+    
+    Args:
+        user_input: User's response about their expertise
+        openai_client: OpenAI client for LLM analysis
+        
+    Returns:
+        Detected expertise level: "novice", "intermediate", "advanced", or None if unclear
+    """
+    prompt = f"""You are analyzing a user's response to determine their technical expertise level.
+
+USER RESPONSE: {user_input}
+
+Analyze this response to determine the user's self-described technical expertise level.
+
+Consider:
+- Explicit mentions of experience level ("beginner", "expert", "professional")
+- Years of experience mentioned
+- Technologies and concepts they're familiar with
+- Confidence level in their language
+- Complexity of problems they've solved
+- Self-assessment indicators
+
+Classify as:
+- NOVICE: Beginner, new to technology, first time, learning basics, no experience
+- INTERMEDIATE: Some experience, limited knowledge, learning, moderate skills
+- ADVANCED: Expert, professional, years of experience, deep technical knowledge
+
+If the expertise level is not clear from the response, return UNCLEAR.
+
+Respond with exactly "NOVICE", "INTERMEDIATE", "ADVANCED", or "UNCLEAR" - nothing else."""
+
+    try:
+        result = await openai_client.call_agent(
+            "You are an expert at assessing technical expertise levels.",
+            prompt,
+            []  # No chat history needed for this analysis
+        )
+        result_upper = result.upper().strip()
+        if result_upper in ["NOVICE", "INTERMEDIATE", "ADVANCED"]:
+            return result_upper.lower()
+        else:
+            return None
+    except Exception as e:
+        # Fallback to basic keyword detection if LLM fails
+        input_lower = user_input.lower()
+        if any(word in input_lower for word in ["beginner", "new", "novice", "never", "first time"]):
+            return "novice"
+        elif any(word in input_lower for word in ["intermediate", "some", "bit of", "limited"]):
+            return "intermediate"
+        elif any(word in input_lower for word in ["advanced", "expert", "professional", "years"]):
+            return "advanced"
+        return None
+
+async def assess_technical_complexity_llm(text: str, openai_client) -> str:
+    """
+    Analyze text to detect technical complexity level using LLM semantic analysis
+    
+    Args:
+        text: User's description or response about their project
+        openai_client: OpenAI client for LLM analysis
+        
+    Returns:
+        Detected complexity level: "low", "medium", or "high"
+    """
+    prompt = f"""You are analyzing a user's project description to assess its technical complexity.
+
+PROJECT DESCRIPTION: {text}
+
+Analyze this description to determine the technical complexity level of the project.
+
+Consider:
+- Infrastructure sophistication (microservices, containers, orchestration)
+- Scalability requirements (load balancing, auto-scaling, CDNs)
+- Data complexity (multiple databases, caching, analytics)
+- Security requirements (authentication, authorization, compliance)
+- DevOps practices (CI/CD, monitoring, deployment automation)
+- Integration complexity (APIs, third-party services, distributed systems)
+- Performance requirements (high traffic, real-time processing)
+
+Classify as:
+- LOW: Simple applications, basic functionality, minimal infrastructure needs
+- MEDIUM: Moderate complexity, some advanced features, standard infrastructure
+- HIGH: Complex systems, advanced architecture, enterprise-scale requirements
+
+Base your assessment on the technical sophistication described, not just the presence of technical terms.
+
+Respond with exactly "LOW", "MEDIUM", or "HIGH" - nothing else."""
+
+    try:
+        result = await openai_client.call_agent(
+            "You are an expert at assessing software project technical complexity.",
+            prompt,
+            []  # No chat history needed for this analysis
+        )
+        result_upper = result.upper().strip()
+        if result_upper in ["LOW", "MEDIUM", "HIGH"]:
+            return result_upper.lower()
+        else:
+            return "medium"  # Default fallback
+    except Exception as e:
+        # Fallback to basic keyword detection if LLM fails
+        text_lower = text.lower()
+        advanced_terms = ["microservices", "kubernetes", "docker", "terraform", "load balancer"]
+        intermediate_terms = ["database", "api", "backend", "scaling", "deployment"]
+        
+        advanced_count = sum(1 for term in advanced_terms if term in text_lower)
+        intermediate_count = sum(1 for term in intermediate_terms if term in text_lower)
+        
+        if advanced_count >= 2:
+            return "high"
+        elif intermediate_count >= 3 or advanced_count >= 1:
+            return "medium"
+        else:
+            return "low"
 
 def format_summary(summary_data: Dict[str, Any]) -> str:
     """
@@ -105,27 +264,7 @@ def validate_openai_response(response: str) -> bool:
     
     return True
 
-def extract_expertise_level(user_input: str) -> Optional[str]:
-    """
-    Extract expertise level from user input
-    
-    Args:
-        user_input: User's response about their expertise
-        
-    Returns:
-        Detected expertise level or None if not clear
-    """
-    input_lower = user_input.lower()
-    
-    # Check for explicit mentions
-    if any(word in input_lower for word in ["beginner", "new", "novice", "never", "first time"]):
-        return "novice"
-    elif any(word in input_lower for word in ["intermediate", "some", "bit of", "limited", "learning"]):
-        return "intermediate"
-    elif any(word in input_lower for word in ["advanced", "expert", "professional", "years", "experienced"]):
-        return "advanced"
-    
-    return None
+
 
 def clean_user_input(user_input: str) -> str:
     """
@@ -153,23 +292,7 @@ def clean_user_input(user_input: str) -> str:
     
     return cleaned
 
-def is_skip_response(user_input: str) -> bool:
-    """
-    Check if user wants to skip a question
-    
-    Args:
-        user_input: User's response
-        
-    Returns:
-        True if user wants to skip, False otherwise
-    """
-    skip_phrases = [
-        "skip", "i don't know", "idk", "not sure", "pass", "next", 
-        "don't know", "no idea", "unclear", "not applicable", "n/a"
-    ]
-    
-    cleaned = clean_user_input(user_input).lower()
-    return cleaned in skip_phrases
+
 
 def format_chat_history(chat_history: List[Dict[str, str]]) -> str:
     """
@@ -198,44 +321,7 @@ def format_chat_history(chat_history: List[Dict[str, str]]) -> str:
     
     return "\n".join(formatted)
 
-def detect_technical_complexity(text: str) -> str:
-    """
-    Analyze text to detect technical complexity level
-    
-    Args:
-        text: User's description or response
-        
-    Returns:
-        Detected complexity level: "low", "medium", or "high"
-    """
-    text_lower = text.lower()
-    
-    # Technical terms that indicate higher complexity
-    advanced_terms = [
-        "microservices", "kubernetes", "docker", "containerization", 
-        "cicd", "devops", "terraform", "infrastructure as code",
-        "load balancer", "auto scaling", "cdn", "api gateway",
-        "database sharding", "caching", "redis", "elasticsearch",
-        "monitoring", "logging", "metrics", "alerts",
-        "security", "authentication", "authorization", "oauth"
-    ]
-    
-    intermediate_terms = [
-        "database", "api", "backend", "frontend", "server",
-        "hosting", "deployment", "scaling", "performance",
-        "users", "traffic", "availability", "backup"
-    ]
-    
-    # Count technical terms
-    advanced_count = sum(1 for term in advanced_terms if term in text_lower)
-    intermediate_count = sum(1 for term in intermediate_terms if term in text_lower)
-    
-    if advanced_count >= 2:
-        return "high"
-    elif intermediate_count >= 3 or advanced_count >= 1:
-        return "medium"
-    else:
-        return "low"
+
 
 def sanitize_filename(filename: str) -> str:
     """
@@ -258,3 +344,16 @@ def sanitize_filename(filename: str) -> str:
         sanitized = "unnamed_file"
     
     return sanitized 
+
+def get_user_input(prompt: str = "Your answer: ") -> str:
+    """
+    Simple user input function for prototype.
+    
+    Args:
+        prompt: The prompt to display to the user
+        
+    Returns:
+        Cleaned user input string
+    """
+    user_answer = input(prompt).strip()
+    return clean_user_input(user_answer) 

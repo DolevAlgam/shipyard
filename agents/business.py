@@ -8,7 +8,7 @@ from typing import Dict, List, Any, Optional
 from core.openai_client import OpenAIClient
 from core.state_manager import StateManager
 from core.prompts import BUSINESS_AGENT_PROMPT, BUSINESS_TOPICS
-from utils.helpers import needs_follow_up_llm, clean_user_input, is_skip_response
+from utils.helpers import needs_follow_up_llm, get_user_input, is_skip_request_llm
 
 class BusinessAgent:
     """Agent responsible for gathering business requirements and constraints"""
@@ -35,9 +35,7 @@ class BusinessAgent:
         for topic in BUSINESS_TOPICS:
             await self._process_topic(topic, state)
         
-        # Extract and store summary
-        summary = await self._extract_summary(state)
-        self.state_manager.set_pillar_summary(self.pillar_name, summary)
+        # Note: Summary will be handled by SummarizerAgent when called by the main orchestrator
         
         print(f"✅ Perfect! I now understand your business needs.")
         
@@ -71,15 +69,14 @@ class BusinessAgent:
             print(f"\n{agent_response}")
             
             # Get user's answer
-            user_answer = input("\nYour answer: ").strip()
-            user_answer = clean_user_input(user_answer)
+            user_answer = get_user_input("\nYour answer: ")
             
             # Add to chat history
             self.state_manager.add_to_chat_history(self.pillar_name, "assistant", agent_response)
             self.state_manager.add_to_chat_history(self.pillar_name, "user", user_answer)
             
             # Check if user wants to skip
-            if is_skip_response(user_answer):
+            if await is_skip_request_llm(user_answer, self.client):
                 print("No problem, skipping this question.")
                 topic_complete = True
                 continue
@@ -88,7 +85,6 @@ class BusinessAgent:
             if await needs_follow_up_llm(user_answer, agent_response, self.client):
                 follow_up_count += 1
                 self.state_manager.increment_follow_up_count(self.pillar_name, topic)
-                print("Let me ask a follow-up question to clarify...")
             else:
                 topic_complete = True
     
@@ -102,40 +98,4 @@ class BusinessAgent:
             # If some keys are missing, return base prompt with available context
             return f"{BUSINESS_AGENT_PROMPT}\n\nCONTEXT:\n{json.dumps(context, indent=2)}"
     
-    async def _extract_summary(self, state) -> Dict[str, Any]:
-        """Extract key information from the business conversation"""
-        chat_history = self.state_manager.get_chat_history(self.pillar_name)
-        
-        summary = {}
-        
-        # Extract key business information from conversation
-        for message in chat_history:
-            if message["role"] == "user":
-                content = message["content"].lower()
-                
-                # Extract user scale information
-                if "user_scale" not in summary:
-                    if any(scale in content for scale in ["thousand", "million", "hundred", "k", "m"]):
-                        summary["user_scale"] = message["content"]
-                
-                # Extract uptime requirements
-                if "uptime_requirement" not in summary:
-                    if any(uptime in content for uptime in ["99", "uptime", "availability", "sla"]):
-                        summary["uptime_requirement"] = message["content"]
-                
-                # Extract budget information
-                if "budget" not in summary:
-                    if any(budget in content for budget in ["budget", "cost", "dollar", "$", "expensive", "cheap"]):
-                        summary["budget"] = message["content"]
-                
-                # Extract compliance requirements
-                if "compliance" not in summary:
-                    if any(comp in content for comp in ["compliance", "regulation", "pci", "hipaa", "gdpr", "sox"]):
-                        summary["compliance"] = message["content"]
-                
-                # Extract geographic distribution
-                if "geographic" not in summary:
-                    if any(geo in content for geo in ["region", "country", "global", "international", "local"]):
-                        summary["geographic"] = message["content"]
-        
-        return summary 
+ 

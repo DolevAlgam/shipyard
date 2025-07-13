@@ -73,8 +73,8 @@ class FeedbackInterpreterAgent:
             # Try to parse as JSON if possible
             structured_feedback = json.loads(interpretation)
         except json.JSONDecodeError:
-            # If not JSON, create structured format from text
-            structured_feedback = self._parse_text_feedback(interpretation)
+            # If not JSON, use LLM to create structured format from text
+            structured_feedback = await self._parse_text_feedback_llm(interpretation)
         
         return structured_feedback
     
@@ -92,36 +92,37 @@ class FeedbackInterpreterAgent:
             # If some keys are missing, return base prompt with available context
             return f"{FEEDBACK_INTERPRETER_PROMPT}\n\nCONTEXT:\n{json.dumps(context, indent=2)}"
     
-    def _parse_text_feedback(self, interpretation: str) -> Dict[str, Any]:
-        """Parse text interpretation into structured format"""
-        feedback_analysis = {
-            "interpretation": interpretation,
-            "changes_requested": [],
-            "sections_affected": [],
-            "priority": "medium"
-        }
-        
-        lines = interpretation.strip().split('\n')
-        
-        for line in lines:
-            line = line.strip()
-            if line:
-                # Look for common change indicators
-                if any(word in line.lower() for word in ['change', 'update', 'modify', 'add', 'remove']):
-                    feedback_analysis["changes_requested"].append(line)
-                
-                # Look for section references
-                sections = [
-                    "executive summary", "architecture", "compute", "networking", 
-                    "storage", "security", "monitoring", "disaster recovery", 
-                    "ci/cd", "cost", "timeline", "assumptions"
-                ]
-                
-                for section in sections:
-                    if section in line.lower():
-                        feedback_analysis["sections_affected"].append(section)
-        
-        return feedback_analysis
+    async def _parse_text_feedback_llm(self, interpretation: str) -> Dict[str, Any]:
+        """Parse text interpretation into structured format using LLM analysis"""
+        prompt = f"""You are analyzing feedback interpretation text to extract structured information.
+
+INTERPRETATION TEXT: {interpretation}
+
+Extract the following information and return as JSON:
+{{
+    "interpretation": "The full interpretation text",
+    "changes_requested": ["List of specific changes or modifications requested"],
+    "sections_affected": ["List of document sections that need updates"],
+    "priority": "low/medium/high based on urgency and scope"
+}}
+
+Analyze the semantic meaning, not just keyword presence. Understand the intent behind the feedback."""
+
+        try:
+            result = await self.client.call_agent(
+                "You are an expert at analyzing feedback and extracting structured information.",
+                prompt,
+                []
+            )
+            return json.loads(result)
+        except Exception as e:
+            # Fallback structure if LLM fails
+            return {
+                "interpretation": interpretation,
+                "changes_requested": [interpretation],
+                "sections_affected": [],
+                "priority": "medium"
+            }
     
     async def clarify_feedback(self, feedback: str, state) -> str:
         """

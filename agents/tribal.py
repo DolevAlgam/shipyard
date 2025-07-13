@@ -8,7 +8,7 @@ from typing import Dict, List, Any, Optional
 from core.openai_client import OpenAIClient
 from core.state_manager import StateManager
 from core.prompts import TRIBAL_AGENT_PROMPT, TRIBAL_TOPICS
-from utils.helpers import needs_follow_up_llm, clean_user_input, is_skip_response
+from utils.helpers import needs_follow_up_llm, get_user_input, is_skip_request_llm
 
 class TribalAgent:
     """Agent responsible for understanding organizational constraints and preferences"""
@@ -71,15 +71,14 @@ class TribalAgent:
             print(f"\n{agent_response}")
             
             # Get user's answer
-            user_answer = input("\nYour answer: ").strip()
-            user_answer = clean_user_input(user_answer)
+            user_answer = get_user_input("\nYour answer: ")
             
             # Add to chat history
             self.state_manager.add_to_chat_history(self.pillar_name, "assistant", agent_response)
             self.state_manager.add_to_chat_history(self.pillar_name, "user", user_answer)
             
             # Check if user wants to skip
-            if is_skip_response(user_answer):
+            if await is_skip_request_llm(user_answer, self.client):
                 print("No problem, skipping this question.")
                 topic_complete = True
                 continue
@@ -88,7 +87,6 @@ class TribalAgent:
             if await needs_follow_up_llm(user_answer, agent_response, self.client):
                 follow_up_count += 1
                 self.state_manager.increment_follow_up_count(self.pillar_name, topic)
-                print("Let me ask a follow-up question to clarify...")
             else:
                 topic_complete = True
     
@@ -102,45 +100,4 @@ class TribalAgent:
             # If some keys are missing, return base prompt with available context
             return f"{TRIBAL_AGENT_PROMPT}\n\nCONTEXT:\n{json.dumps(context, indent=2)}"
     
-    async def _extract_summary(self, state) -> Dict[str, Any]:
-        """Extract key information from the tribal conversation"""
-        chat_history = self.state_manager.get_chat_history(self.pillar_name)
-        
-        summary = {}
-        
-        # Extract key organizational information from conversation
-        for message in chat_history:
-            if message["role"] == "user":
-                content = message["content"].lower()
-                
-                # Extract cloud provider preferences
-                if "cloud_provider" not in summary:
-                    providers = ["aws", "azure", "google", "gcp", "amazon", "microsoft"]
-                    if any(provider in content for provider in providers):
-                        summary["cloud_provider"] = message["content"]
-                
-                # Extract existing tools
-                if "existing_tools" not in summary:
-                    tools = ["github", "gitlab", "jenkins", "docker", "kubernetes", "terraform", "ansible"]
-                    if any(tool in content for tool in tools):
-                        summary["existing_tools"] = message["content"]
-                
-                # Extract team expertise
-                if "team_expertise" not in summary:
-                    expertise_terms = ["team", "developer", "engineer", "experience", "skill", "knowledge"]
-                    if any(term in content for term in expertise_terms):
-                        summary["team_expertise"] = message["content"]
-                
-                # Extract security policies
-                if "security_policies" not in summary:
-                    security_terms = ["security", "policy", "compliance", "audit", "governance", "access"]
-                    if any(term in content for term in security_terms):
-                        summary["security_policies"] = message["content"]
-                
-                # Extract operational preferences
-                if "operational_preferences" not in summary:
-                    ops_terms = ["manage", "maintenance", "monitoring", "support", "operations", "devops"]
-                    if any(term in content for term in ops_terms):
-                        summary["operational_preferences"] = message["content"]
-        
-        return summary 
+ 
