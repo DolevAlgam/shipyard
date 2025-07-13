@@ -66,10 +66,11 @@ class ProfilerAgent(BaseAgent):
                 agent_input = "The user needs clarification or you need to probe deeper. Provide a follow-up question or explanation."
             
             # Get agent's question/response
-            agent_response = await self.client.call_agent(
-                system_prompt, 
-                agent_input,
-                self.state_manager.get_chat_history(self.pillar_name)
+            agent_response = await self.get_response(
+                system_prompt=system_prompt,
+                user_message=agent_input,
+                openai_client=self.client,
+                chat_history=self.state_manager.get_chat_history(self.pillar_name)
             )
             
             # Display agent's question

@@ -389,4 +389,103 @@ AGENT_PROMPTS = {
     "document_generator": DOCUMENT_GENERATOR_PROMPT,
     "summarizer": SUMMARIZER_PROMPT,
     "feedback_interpreter": FEEDBACK_INTERPRETER_PROMPT
-} 
+}
+
+# ===== O3 REASONING MODEL PROMPTS =====
+# Enhanced prompts that leverage o3's advanced reasoning capabilities
+
+O3_DOCUMENT_GENERATOR_PROMPT = """
+GOAL: Generate a comprehensive infrastructure planning document based on user requirements and technical context.
+
+RETURN FORMAT:
+- Executive Summary (2-3 paragraphs)
+- Technical Architecture (detailed sections with diagrams)
+- Implementation Timeline (phases with dependencies)
+- Resource Requirements (team, tools, budget estimates)
+- Risk Assessment (identified risks with mitigation strategies)
+- Recommendations (prioritized action items)
+
+WARNINGS/VALIDATION:
+- Ensure all technical recommendations are current industry standards
+- Verify infrastructure sizing matches stated user requirements
+- Do not recommend deprecated technologies or practices
+- Cross-check cost estimates with realistic market rates
+
+CONTEXT:
+You are an expert infrastructure architect creating production-ready planning documents. 
+Use the gathered requirements from previous agents to create actionable implementation plans.
+Focus on scalability, security, and maintainability for the specified use case and technical constraints.
+"""
+
+O3_QUESTION_GENERATION_PROMPT = """
+GOAL: Generate intelligent, context-aware questions for a specific interview topic based on user profile and conversation history.
+
+RETURN FORMAT:
+- Primary Question (main focus question)
+- 2-3 Follow-up Questions (for deeper understanding)
+- Context Notes (why these questions matter for the user's case)
+
+WARNINGS/VALIDATION:
+- Adapt question complexity to user's stated expertise level
+- Avoid repeating information already covered in conversation
+- Ensure questions are specific enough to elicit actionable responses
+- Do not ask overly technical questions for novice users
+
+CONTEXT:
+You are formulating interview questions for infrastructure planning.
+The user's technical background and project context should guide question selection.
+Questions should efficiently gather the most important information for creating accurate recommendations.
+"""
+
+O3_ARCHITECTURE_RECOMMENDATION_PROMPT = """
+GOAL: Analyze requirements and recommend optimal infrastructure architecture with detailed rationale.
+
+RETURN FORMAT:
+- Recommended Architecture (high-level overview)
+- Component Breakdown (detailed service descriptions)
+- Technology Stack (specific tools and versions)
+- Scalability Plan (growth accommodation strategy)
+- Integration Points (how components connect)
+- Alternative Approaches (trade-offs comparison)
+
+WARNINGS/VALIDATION:
+- Verify all recommended technologies are production-ready
+- Ensure architecture scales to stated user requirements
+- Check that security requirements are addressed throughout
+- Validate that team skills match recommended complexity
+
+CONTEXT:
+You are providing expert architecture guidance for a real infrastructure project.
+Consider the user's team size, expertise level, timeline, and specific technical constraints.
+Balance ideal solutions with practical implementation realities for the given context.
+"""
+
+# Enhanced operation mode prompts
+O3_OPERATION_PROMPTS = {
+    "document_generation": O3_DOCUMENT_GENERATOR_PROMPT,
+    "question_formulation": O3_QUESTION_GENERATION_PROMPT,
+    "architecture_recommendation": O3_ARCHITECTURE_RECOMMENDATION_PROMPT
+}
+
+# Combined prompts dictionary with o3 enhancements
+ALL_PROMPTS = {
+    **AGENT_PROMPTS,
+    **O3_OPERATION_PROMPTS
+}
+
+def get_prompt_for_operation(operation_mode: str, fallback_prompt: str = None) -> str:
+    """
+    Get the appropriate prompt for an operation mode
+    
+    Args:
+        operation_mode: The operation mode (e.g., 'document_generation', 'question_formulation')
+        fallback_prompt: Fallback prompt if operation mode not found
+        
+    Returns:
+        The prompt string for the operation
+    """
+    return O3_OPERATION_PROMPTS.get(operation_mode, fallback_prompt or DOCUMENT_GENERATOR_PROMPT)
+
+def is_reasoning_operation(operation_mode: str) -> bool:
+    """Check if an operation mode uses reasoning models"""
+    return operation_mode in O3_OPERATION_PROMPTS 

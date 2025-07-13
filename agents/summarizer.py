@@ -9,13 +9,19 @@ from core.openai_client import OpenAIClient
 from core.state_manager import StateManager
 from core.prompts import SUMMARIZER_PROMPT
 from utils.helpers import format_chat_history
+from .base_agent import BaseAgent
 
-class SummarizerAgent:
+class SummarizerAgent(BaseAgent):
     """Agent responsible for extracting key information from conversations"""
     
     def __init__(self, openai_client: OpenAIClient, state_manager: StateManager):
+        super().__init__("summarizer", [], SUMMARIZER_PROMPT)
         self.client = openai_client
         self.state_manager = state_manager
+    
+    async def process_topic(self, topic: str, state: Dict, openai_client) -> Dict:
+        """Required abstract method from BaseAgent - not used for summarizer"""
+        return state
     
     async def summarize_pillar(self, pillar_name: str, chat_history: List[Dict[str, str]]) -> Dict[str, Any]:
         """
@@ -38,11 +44,11 @@ class SummarizerAgent:
         chat_text = format_chat_history(chat_history)
         agent_input = f"Summarize the key information from this {pillar_name} conversation:\n\n{chat_text}"
         
-        # Get summary from AI
-        summary_response = await self.client.call_agent(
-            system_prompt,
-            agent_input,
-            temperature=0.3  # Lower temperature for more consistent summarization
+        # Generate summary using configured model (o3-mini for reasoning)
+        summary_response = await self.get_response(
+            system_prompt=system_prompt,
+            user_message=f"Create a comprehensive summary of this {pillar_name} conversation:\n\n{chat_text}",
+            openai_client=self.client
         )
         
         # Parse response into structured format

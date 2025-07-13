@@ -9,14 +9,20 @@ from core.openai_client import OpenAIClient
 from core.state_manager import StateManager
 from core.prompts import BEST_PRACTICES_PROMPT, INFRASTRUCTURE_CHECKLIST
 from utils.helpers import format_summary
+from .base_agent import BaseAgent
 
-class BestPracticesAgent:
+class BestPracticesAgent(BaseAgent):
     """Agent responsible for filling gaps with industry best practices"""
     
     def __init__(self, openai_client: OpenAIClient, state_manager: StateManager):
+        super().__init__("best_practices", [], BEST_PRACTICES_PROMPT)
         self.client = openai_client
         self.state_manager = state_manager
         self.pillar_name = "best_practices"
+    
+    async def process_topic(self, topic: str, state: Dict, openai_client) -> Dict:
+        """Required abstract method from BaseAgent - not used for best practices"""
+        return state
     
     async def run_pillar(self, state) -> Dict[str, Any]:
         """
@@ -71,11 +77,11 @@ class BestPracticesAgent:
         requirements_text = json.dumps(requirements, indent=2)
         agent_input = f"Review these requirements and fill any gaps with best practices:\n\n{requirements_text}"
         
-        # Get best practices recommendations
-        best_practices_response = await self.client.call_agent(
-            system_prompt,
-            agent_input,
-            temperature=0.3  # Lower temperature for more consistent recommendations
+        # Get best practices recommendations using reasoning model
+        best_practices_response = await self.get_response(
+            system_prompt=system_prompt,
+            user_message=agent_input,
+            openai_client=self.client
         )
         
         return best_practices_response

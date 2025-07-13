@@ -9,15 +9,22 @@ from core.openai_client import OpenAIClient
 from core.state_manager import StateManager
 from core.prompts import BUSINESS_AGENT_PROMPT, BUSINESS_TOPICS
 from utils.helpers import needs_follow_up_llm, get_user_input, is_skip_request_llm
+from .base_agent import BaseAgent
 
-class BusinessAgent:
+class BusinessAgent(BaseAgent):
     """Agent responsible for gathering business requirements and constraints"""
     
     def __init__(self, openai_client: OpenAIClient, state_manager: StateManager):
+        super().__init__("business", BUSINESS_TOPICS, BUSINESS_AGENT_PROMPT)
         self.client = openai_client
         self.state_manager = state_manager
         self.pillar_name = "business"
         self.max_follow_ups = 3
+    
+    async def process_topic(self, topic: str, state: Dict, openai_client) -> Dict:
+        """Required abstract method from BaseAgent"""
+        await self._process_topic(topic, state)
+        return state
     
     async def run_pillar(self, state) -> Dict[str, Any]:
         """
@@ -59,10 +66,11 @@ class BusinessAgent:
                 agent_input = "The user needs clarification or you need to probe deeper. Provide a follow-up question or explanation."
             
             # Get agent's question/response
-            agent_response = await self.client.call_agent(
-                system_prompt, 
-                agent_input,
-                self.state_manager.get_chat_history(self.pillar_name)
+            agent_response = await self.get_response(
+                system_prompt=system_prompt,
+                user_message=agent_input,
+                openai_client=self.client,
+                chat_history=self.state_manager.get_chat_history(self.pillar_name)
             )
             
             # Display agent's question
