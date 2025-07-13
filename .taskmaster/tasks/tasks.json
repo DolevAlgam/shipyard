@@ -1,0 +1,142 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Setup Project Repository and Environment",
+        "description": "Initialize the Python project structure with proper directory layout, create virtual environment, and install required dependencies including OpenAI SDK v1.95.1",
+        "details": "Create project structure:\n```\nshipyard/\n├── main.py\n├── requirements.txt\n├── .env.example\n├── .gitignore\n├── README.md\n├── agents/\n│   ├── __init__.py\n│   ├── profiler.py\n│   ├── business.py\n│   ├── app.py\n│   ├── tribal.py\n│   ├── best_practices.py\n│   ├── summarizer.py\n│   ├── document_generator.py\n│   └── feedback_interpreter.py\n├── core/\n│   ├── __init__.py\n│   ├── state_manager.py\n│   ├── openai_client.py\n│   └── prompts.py\n├── utils/\n│   ├── __init__.py\n│   └── helpers.py\n└── tests/\n    └── __init__.py\n```\n\nCreate requirements.txt:\n```\nopenai==1.95.1\npython-dotenv==1.0.0\n```\n\nCreate .env.example:\n```\nOPENAI_API_KEY=your-key-here\n```",
+        "testStrategy": "Verify project structure exists, virtual environment activates successfully, and all dependencies install without conflicts. Test OpenAI SDK import and basic client initialization with mock API key.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Implement State Management System",
+        "description": "Create the core state management module that handles chat history, application state, and summaries as defined in the PRD data flow section",
+        "details": "Implement core/state_manager.py:\n```python\nclass StateManager:\n    def __init__(self):\n        self.state = {\n            \"chat_history\": {},\n            \"state\": {\n                \"user_profile\": {\n                    \"expertise_level\": None,\n                    \"project_description\": None,\n                    \"gauged_complexity\": None,\n                },\n                \"current_document\": {},\n                \"all_conversations\": [],\n                \"follow_up_counts\": {}\n            },\n            \"summaries\": {\n                \"profiler\": {},\n                \"business\": {},\n                \"app\": {},\n                \"tribal\": {}\n            }\n        }\n    \n    def update_chat_history(self, pillar_name, messages):\n        if pillar_name not in self.state[\"chat_history\"]:\n            self.state[\"chat_history\"][pillar_name] = []\n        self.state[\"chat_history\"][pillar_name].extend(messages)\n    \n    def update_user_profile(self, profile_data):\n        self.state[\"state\"][\"user_profile\"].update(profile_data)\n    \n    def add_summary(self, pillar_name, summary):\n        self.state[\"summaries\"][pillar_name] = summary\n    \n    def get_context_for_agent(self, pillar_name):\n        return {\n            \"user_profile\": self.state[\"state\"][\"user_profile\"],\n            \"summaries\": self.state[\"summaries\"],\n            \"current_document\": self.state[\"state\"][\"current_document\"]\n        }\n```",
+        "testStrategy": "Unit test state initialization, update methods, and context retrieval. Verify state persistence across agent transitions and proper isolation of chat histories per pillar.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Create OpenAI Client Wrapper",
+        "description": "Implement the OpenAI SDK integration layer with proper error handling, retry logic, and message formatting for the Chat Completions API",
+        "details": "Implement core/openai_client.py:\n```python\nimport os\nimport time\nfrom openai import OpenAI\nfrom typing import List, Dict, Optional\n\nclass OpenAIClient:\n    def __init__(self):\n        self.client = OpenAI(\n            api_key=os.environ.get(\"OPENAI_API_KEY\")\n        )\n        self.max_retries = 3\n        self.base_delay = 1\n    \n    async def call_agent(self, system_prompt: str, user_message: str, \n                        chat_history: Optional[List[Dict]] = None) -> str:\n        messages = [{\"role\": \"system\", \"content\": system_prompt}]\n        \n        if chat_history:\n            messages.extend(chat_history)\n        \n        messages.append({\"role\": \"user\", \"content\": user_message})\n        \n        for attempt in range(self.max_retries):\n            try:\n                response = self.client.chat.completions.create(\n                    model=\"gpt-4o\",\n                    messages=messages,\n                    temperature=0.7,\n                    max_tokens=1000\n                )\n                return response.choices[0].message.content\n            except Exception as e:\n                if attempt < self.max_retries - 1:\n                    delay = self.base_delay * (2 ** attempt)\n                    time.sleep(delay)\n                else:\n                    raise e\n    \n    def build_system_prompt(self, base_prompt: str, context: Dict) -> str:\n        try:\n            return base_prompt.format(**context)\n        except KeyError:\n            import json\n            return f\"{base_prompt}\\n\\nCONTEXT:\\n{json.dumps(context, indent=2)}\"\n```",
+        "testStrategy": "Mock OpenAI API responses to test retry logic, error handling, and message formatting. Verify exponential backoff works correctly and system prompts are properly formatted with context.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Implement Core Agent Base Class and Profiler Agent",
+        "description": "Create the base agent class with common functionality and implement the Profiler Agent to assess user expertise and gather project context",
+        "details": "Create agents/base_agent.py:\n```python\nfrom abc import ABC, abstractmethod\nfrom typing import Dict, List\n\nclass BaseAgent(ABC):\n    def __init__(self, name: str, topics: List[str], prompt: str):\n        self.name = name\n        self.topics = topics\n        self.prompt = prompt\n    \n    @abstractmethod\n    async def process_topic(self, topic: str, state: Dict, openai_client) -> Dict:\n        pass\n    \n    def needs_follow_up(self, user_answer: str) -> bool:\n        unclear_indicators = [\n            \"what do you mean\", \"i don't understand\", \n            \"can you explain\", \"i'm not sure\", \"maybe\",\n            \"i think\", \"possibly\", \"huh?\", \"?\"\n        ]\n        answer_lower = user_answer.lower()\n        return any(indicator in answer_lower for indicator in unclear_indicators)\n```\n\nImplement agents/profiler.py:\n```python\nfrom .base_agent import BaseAgent\nfrom core.prompts import PROFILER_AGENT_PROMPT\n\nclass ProfilerAgent(BaseAgent):\n    def __init__(self):\n        topics = [\n            \"expertise_assessment\",\n            \"project_overview\",\n            \"project_scale\",\n            \"timeline\"\n        ]\n        super().__init__(\"profiler\", topics, PROFILER_AGENT_PROMPT)\n    \n    async def process_topic(self, topic: str, state: Dict, openai_client) -> Dict:\n        # Implementation for processing profiler topics\n        # Assess stated vs observed expertise\n        # Extract project type and domain\n        pass\n```",
+        "testStrategy": "Test expertise assessment logic, verify proper detection of technical sophistication from user responses, and ensure profile data is correctly stored in state.",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Implement Business, App, and Tribal Knowledge Agents",
+        "description": "Create the three core interview agents that gather business requirements, application needs, and organizational constraints respectively",
+        "details": "Implement agents/business.py:\n```python\nfrom .base_agent import BaseAgent\nfrom core.prompts import BUSINESS_AGENT_PROMPT, BUSINESS_TOPICS\n\nclass BusinessAgent(BaseAgent):\n    def __init__(self):\n        super().__init__(\"business\", BUSINESS_TOPICS, BUSINESS_AGENT_PROMPT)\n    \n    async def process_topic(self, topic: str, state: Dict, openai_client) -> Dict:\n        # Adaptive questioning based on expertise\n        # Handle topics: user_base, traffic_patterns, availability, etc.\n        pass\n```\n\nImplement agents/app.py with APP_TOPICS:\n- application_type\n- programming_languages\n- frameworks\n- database_requirements\n- storage_needs\n- external_integrations\n- api_requirements\n- deployment_model\n\nImplement agents/tribal.py with TRIBAL_TOPICS:\n- cloud_provider\n- existing_tools\n- team_expertise\n- security_policies\n- operational_preferences\n- development_workflow",
+        "testStrategy": "Test each agent's ability to adapt questions based on user expertise, verify proper topic coverage, and ensure all gathered requirements are stored correctly in state.",
+        "priority": "medium",
+        "dependencies": [
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Create Best Practices and Summarizer Agents",
+        "description": "Implement the Best Practices Agent to fill gaps with industry standards and the Summarizer Agent to extract key information after each pillar completes",
+        "details": "Implement agents/best_practices.py:\n```python\nfrom .base_agent import BaseAgent\nfrom core.prompts import BEST_PRACTICES_PROMPT, INFRASTRUCTURE_CHECKLIST\n\nclass BestPracticesAgent(BaseAgent):\n    def __init__(self):\n        super().__init__(\"best_practices\", [], BEST_PRACTICES_PROMPT)\n    \n    async def fill_gaps(self, state: Dict, openai_client) -> Dict:\n        # Review all requirements\n        # Identify missing items from INFRASTRUCTURE_CHECKLIST\n        # Add recommendations with [AI Recommendation: ...] notation\n        pass\n```\n\nImplement agents/summarizer.py:\n```python\nclass SummarizerAgent:\n    async def summarize_pillar(self, pillar_name: str, \n                               chat_history: List[Dict], \n                               openai_client) -> Dict:\n        # Extract key information from conversation\n        # Return structured summary for the pillar\n        # Format depends on pillar type\n        pass\n```",
+        "testStrategy": "Test gap identification logic, verify AI recommendations are clearly marked, and ensure summaries accurately capture key information from conversations.",
+        "priority": "medium",
+        "dependencies": [
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Implement Document Generator and Feedback Interpreter",
+        "description": "Create agents for generating the comprehensive infrastructure document and interpreting user feedback for revisions",
+        "details": "Implement agents/document_generator.py:\n```python\nfrom core.prompts import DOCUMENT_GENERATOR_PROMPT\n\nclass DocumentGeneratorAgent:\n    def __init__(self):\n        self.sections = [\n            \"Executive Summary\",\n            \"Architecture Overview\",\n            \"Compute Resources\",\n            \"Networking Configuration\",\n            \"Storage Solutions\",\n            \"Security Measures\",\n            \"Monitoring and Observability\",\n            \"Disaster Recovery Plan\",\n            \"CI/CD Pipeline\",\n            \"Cost Estimates\",\n            \"Implementation Timeline\",\n            \"Assumptions and Recommendations\"\n        ]\n    \n    async def generate_document(self, state: Dict, openai_client) -> str:\n        # Compile all requirements and summaries\n        # Generate comprehensive markdown document\n        # Include mermaid diagrams where appropriate\n        pass\n```\n\nImplement agents/feedback_interpreter.py:\n```python\nclass FeedbackInterpreterAgent:\n    async def interpret_feedback(self, feedback: str, \n                                 current_doc: str, \n                                 openai_client) -> Dict:\n        # Parse natural language feedback\n        # Identify specific sections to modify\n        # Return structured change requests\n        pass\n```",
+        "testStrategy": "Verify document includes all required sections, test feedback interpretation accuracy, and ensure document modifications are applied correctly.",
+        "priority": "medium",
+        "dependencies": [
+          6
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Build Main Interview Orchestration Loop",
+        "description": "Implement the main flow that orchestrates all agents in sequence, manages state transitions, and handles the interview process from start to finish",
+        "details": "Implement main interview flow:\n```python\nimport asyncio\nfrom core.state_manager import StateManager\nfrom core.openai_client import OpenAIClient\nfrom agents import *\n\nasync def run_interview():\n    state_manager = StateManager()\n    openai_client = OpenAIClient()\n    \n    # Initialize agents\n    agents = {\n        \"profiler\": ProfilerAgent(),\n        \"business\": BusinessAgent(),\n        \"app\": AppAgent(),\n        \"tribal\": TribalAgent(),\n        \"best_practices\": BestPracticesAgent()\n    }\n    \n    # Run each pillar in sequence\n    for pillar_name in [\"profiler\", \"business\", \"app\", \"tribal\"]:\n        state = await run_pillar(\n            pillar_name, \n            agents[pillar_name], \n            state_manager, \n            openai_client\n        )\n    \n    # Apply best practices\n    state = await agents[\"best_practices\"].fill_gaps(\n        state_manager.state, \n        openai_client\n    )\n    \n    # Generate document\n    doc_generator = DocumentGeneratorAgent()\n    document = await doc_generator.generate_document(\n        state_manager.state, \n        openai_client\n    )\n    \n    # Review loop\n    final_doc = await review_loop(document, state_manager, openai_client)\n    \n    return final_doc\n\nasync def run_pillar(pillar_name, agent, state_manager, openai_client):\n    # Implement pillar execution logic with follow-up handling\n    # Update chat history and state\n    # Call summarizer after completion\n    pass\n```",
+        "testStrategy": "Test complete interview flow with mock user inputs, verify state transitions between agents, and ensure proper error handling throughout the process.",
+        "priority": "high",
+        "dependencies": [
+          5,
+          6,
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Create User Interface and Input Handling",
+        "description": "Implement the console-based user interface for the interview process, including input validation, progress display, and user-friendly prompts",
+        "details": "Implement user interface in main.py:\n```python\nimport asyncio\nimport sys\nfrom typing import Optional\n\nclass ConsoleInterface:\n    def __init__(self):\n        self.colors = {\n            'assistant': '\\033[94m',  # Blue\n            'user': '\\033[92m',       # Green\n            'system': '\\033[93m',     # Yellow\n            'error': '\\033[91m',      # Red\n            'reset': '\\033[0m'\n        }\n    \n    async def get_user_input(self, prompt: str) -> str:\n        print(f\"\\n{self.colors['assistant']}Assistant: {prompt}{self.colors['reset']}\")\n        print(f\"{self.colors['user']}You: \", end=\"\")\n        user_input = input()\n        print(self.colors['reset'], end=\"\")\n        return user_input\n    \n    def show_progress(self, current_pillar: str, completed: int, total: int):\n        progress = \"█\" * completed + \"░\" * (total - completed)\n        print(f\"\\n{self.colors['system']}Progress: [{progress}] {completed}/{total}\")\n        print(f\"Current: {current_pillar}{self.colors['reset']}\")\n    \n    def display_document_section(self, section: str, content: str):\n        print(f\"\\n{self.colors['system']}=== {section} ==={self.colors['reset']}\")\n        print(content)\n    \n    async def confirm_action(self, message: str) -> bool:\n        response = await self.get_user_input(f\"{message} (yes/no)\")\n        return response.lower() in ['yes', 'y']\n\nasync def main():\n    print(\"Welcome to Shipyard - Infrastructure Planning Assistant\")\n    print(\"=\" * 50)\n    \n    try:\n        from interview import run_interview\n        final_document = await run_interview()\n        \n        # Save document\n        with open('infrastructure_plan.md', 'w') as f:\n            f.write(final_document)\n        \n        print(\"\\n✅ Infrastructure plan saved to infrastructure_plan.md\")\n    \n    except KeyboardInterrupt:\n        print(\"\\n\\n⚠️  Interview cancelled by user\")\n    except Exception as e:\n        print(f\"\\n❌ Error: {str(e)}\")\n\nif __name__ == \"__main__\":\n    asyncio.run(main())\n```",
+        "testStrategy": "Test user input handling, verify progress display updates correctly, test interrupt handling, and ensure document sections display properly with formatting.",
+        "priority": "medium",
+        "dependencies": [
+          8
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Implement Review Loop and Document Finalization",
+        "description": "Create the review loop functionality that presents the generated document to users, accepts feedback, applies revisions, and produces the final infrastructure plan",
+        "details": "Implement review loop functionality:\n```python\nasync def review_loop(initial_doc: str, state_manager, openai_client):\n    feedback_agent = FeedbackInterpreterAgent()\n    doc_generator = DocumentGeneratorAgent()\n    console = ConsoleInterface()\n    \n    current_doc = initial_doc\n    max_revisions = 3\n    revision_count = 0\n    \n    while revision_count < max_revisions:\n        # Display document sections\n        sections = parse_document_sections(current_doc)\n        for section_name, content in sections.items():\n            console.display_document_section(section_name, content)\n            \n            # Ask if user wants to see next section\n            if not await console.confirm_action(\"Continue to next section?\"):\n                break\n        \n        # Get feedback\n        satisfied = await console.confirm_action(\n            \"Are you satisfied with the infrastructure plan?\"\n        )\n        \n        if satisfied:\n            return current_doc\n        \n        # Get revision requests\n        feedback = await console.get_user_input(\n            \"What would you like to change? (Be specific about which sections)\"\n        )\n        \n        # Interpret feedback\n        changes = await feedback_agent.interpret_feedback(\n            feedback, current_doc, openai_client\n        )\n        \n        # Apply changes\n        state_manager.state['revision_requests'] = changes\n        current_doc = await doc_generator.generate_document(\n            state_manager.state, openai_client\n        )\n        \n        revision_count += 1\n        print(f\"\\nRevision {revision_count} complete.\")\n    \n    print(\"\\nMaximum revisions reached. Finalizing document...\")\n    return current_doc\n\ndef parse_document_sections(markdown_doc: str) -> Dict[str, str]:\n    # Parse markdown document into sections\n    sections = {}\n    current_section = None\n    current_content = []\n    \n    for line in markdown_doc.split('\\n'):\n        if line.startswith('# '):\n            if current_section:\n                sections[current_section] = '\\n'.join(current_content)\n            current_section = line[2:]\n            current_content = []\n        else:\n            current_content.append(line)\n    \n    if current_section:\n        sections[current_section] = '\\n'.join(current_content)\n    \n    return sections\n```",
+        "testStrategy": "Test review loop with various user feedback scenarios, verify document parsing works correctly, test revision limit enforcement, and ensure changes are properly applied to the document.",
+        "priority": "medium",
+        "dependencies": [
+          9
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-07-12T23:55:27.349Z",
+      "updated": "2025-07-12T23:55:27.349Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
