@@ -20,8 +20,8 @@ async def needs_follow_up_llm(user_answer: str, question: str, openai_client) ->
     """
     prompt = f"""You are analyzing a conversation to determine if a follow-up question is needed.
 
-QUESTION ASKED: {question}
-USER RESPONSE: {user_answer}
+QUESTION ASKED: "{question}"
+USER RESPONSE: "{user_answer}"
 
 Analyze if this response adequately answers the question or if follow-up is needed.
 
@@ -42,8 +42,8 @@ Respond with exactly "FOLLOW_UP_NEEDED" or "COMPLETE" - nothing else."""
         )
         return "FOLLOW_UP_NEEDED" in result.upper()
     except Exception as e:
-        # Fallback to basic heuristics if LLM fails
-        return len(user_answer.strip()) < 3 or "?" in user_answer
+        # Return False if LLM fails - assume no follow-up needed as safe default
+        return False
 
 async def is_skip_request_llm(user_answer: str, openai_client) -> bool:
     """
@@ -58,7 +58,7 @@ async def is_skip_request_llm(user_answer: str, openai_client) -> bool:
     """
     prompt = f"""You are analyzing a user's response to determine if they want to skip or pass on answering a question.
 
-USER RESPONSE: {user_answer}
+USER RESPONSE: "{user_answer}"
 
 Analyze if this response indicates the user wants to skip the question.
 
@@ -84,9 +84,8 @@ Respond with exactly "SKIP" or "ANSWER" - nothing else."""
         )
         return "SKIP" in result.upper()
     except Exception as e:
-        # Fallback to basic heuristics if LLM fails
-        skip_indicators = ["skip", "pass", "idk", "don't know", "no idea", "n/a"]
-        return any(indicator in user_answer.lower() for indicator in skip_indicators)
+        # Return False if LLM fails - assume user wants to answer as safe default
+        return False
 
 async def extract_expertise_level_llm(user_input: str, openai_client) -> Optional[str]:
     """
@@ -101,7 +100,7 @@ async def extract_expertise_level_llm(user_input: str, openai_client) -> Optiona
     """
     prompt = f"""You are analyzing a user's response to determine their technical expertise level.
 
-USER RESPONSE: {user_input}
+USER RESPONSE: "{user_input}"
 
 Analyze this response to determine the user's self-described technical expertise level.
 
@@ -134,14 +133,7 @@ Respond with exactly "NOVICE", "INTERMEDIATE", "ADVANCED", or "UNCLEAR" - nothin
         else:
             return None
     except Exception as e:
-        # Fallback to basic keyword detection if LLM fails
-        input_lower = user_input.lower()
-        if any(word in input_lower for word in ["beginner", "new", "novice", "never", "first time"]):
-            return "novice"
-        elif any(word in input_lower for word in ["intermediate", "some", "bit of", "limited"]):
-            return "intermediate"
-        elif any(word in input_lower for word in ["advanced", "expert", "professional", "years"]):
-            return "advanced"
+        # Return None if LLM analysis fails - no fallback keyword logic
         return None
 
 async def assess_technical_complexity_llm(text: str, openai_client) -> str:
@@ -157,7 +149,7 @@ async def assess_technical_complexity_llm(text: str, openai_client) -> str:
     """
     prompt = f"""You are analyzing a user's project description to assess its technical complexity.
 
-PROJECT DESCRIPTION: {text}
+PROJECT DESCRIPTION: "{text}"
 
 Analyze this description to determine the technical complexity level of the project.
 
@@ -191,20 +183,8 @@ Respond with exactly "LOW", "MEDIUM", or "HIGH" - nothing else."""
         else:
             return "medium"  # Default fallback
     except Exception as e:
-        # Fallback to basic keyword detection if LLM fails
-        text_lower = text.lower()
-        advanced_terms = ["microservices", "kubernetes", "docker", "terraform", "load balancer"]
-        intermediate_terms = ["database", "api", "backend", "scaling", "deployment"]
-        
-        advanced_count = sum(1 for term in advanced_terms if term in text_lower)
-        intermediate_count = sum(1 for term in intermediate_terms if term in text_lower)
-        
-        if advanced_count >= 2:
-            return "high"
-        elif intermediate_count >= 3 or advanced_count >= 1:
-            return "medium"
-        else:
-            return "low"
+        # Return medium complexity as safe default if LLM fails
+        return "medium"
 
 def format_summary(summary_data: Dict[str, Any]) -> str:
     """
@@ -243,23 +223,13 @@ def validate_openai_response(response: str) -> bool:
     if not response or not response.strip():
         return False
     
-    # Check for common error patterns
-    error_patterns = [
-        "i apologize, but i'm having trouble",
-        "error",
-        "failed to",
-        "unable to",
-        "connection",
-        "try again"
-    ]
-    
-    response_lower = response.lower()
-    for pattern in error_patterns:
-        if pattern in response_lower:
-            return False
-    
     # Check minimum length (should be at least a sentence)
     if len(response.strip()) < 10:
+        return False
+    
+    # Check for JSON-like structure if expected
+    stripped = response.strip()
+    if stripped.startswith('{') and not stripped.endswith('}'):
         return False
     
     return True
@@ -284,11 +254,6 @@ def clean_user_input(user_input: str) -> str:
     
     # Remove excessive whitespace
     cleaned = re.sub(r'\s+', ' ', cleaned)
-    
-    # Handle common skip phrases
-    skip_phrases = ["skip", "i don't know", "idk", "not sure", "pass", "next"]
-    if cleaned.lower() in skip_phrases:
-        return "skip"
     
     return cleaned
 
