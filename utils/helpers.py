@@ -8,7 +8,7 @@ from typing import Dict, List, Any, Optional
 
 async def needs_follow_up_llm(user_answer: str, question: str, openai_client) -> bool:
     """
-    Determine if user's answer indicates they need clarification or follow-up using LLM analysis
+    Determine if user's answer indicates they need clarification or follow-up using enhanced reasoning model analysis
     
     Args:
         user_answer: The user's response to a question
@@ -18,6 +18,11 @@ async def needs_follow_up_llm(user_answer: str, question: str, openai_client) ->
     Returns:
         True if the answer suggests confusion or need for clarification
     """
+    from config.reasoning_config import get_operation_config
+    
+    # Get configuration for follow-up detection
+    config = get_operation_config('follow_up_detection')
+    
     prompt = f"""You are analyzing a conversation to determine if a follow-up question is needed.
 
 QUESTION ASKED: "{question}"
@@ -36,18 +41,24 @@ Respond with exactly "FOLLOW_UP_NEEDED" or "COMPLETE" - nothing else."""
 
     try:
         result = await openai_client.call_agent(
-            "You are a conversation analysis expert.",
-            prompt,
-            []  # No chat history needed for this analysis
+            system_prompt="You are a conversation analysis expert.",
+            user_message=prompt,
+            chat_history=[],  # No chat history needed for this analysis
+            model=config['model'],
+            effort=config['effort'],
+            reasoning_summary=config['reasoning_summary']
         )
-        return "FOLLOW_UP_NEEDED" in result.upper()
+        
+        # Extract content if it's a ReasoningResponse
+        content = result.content if hasattr(result, 'content') else result
+        return "FOLLOW_UP_NEEDED" in content.upper()
     except Exception as e:
         # Return False if LLM fails - assume no follow-up needed as safe default
         return False
 
 async def is_skip_request_llm(user_answer: str, openai_client) -> bool:
     """
-    Determine if user wants to skip a question using LLM semantic analysis
+    Determine if user wants to skip a question using enhanced reasoning model analysis
     
     Args:
         user_answer: The user's response
@@ -56,6 +67,11 @@ async def is_skip_request_llm(user_answer: str, openai_client) -> bool:
     Returns:
         True if the user wants to skip the question
     """
+    from config.reasoning_config import get_operation_config
+    
+    # Get configuration for skip detection
+    config = get_operation_config('skip_detection')
+    
     prompt = f"""You are analyzing a user's response to determine if they want to skip or pass on answering a question.
 
 USER RESPONSE: "{user_answer}"
@@ -78,18 +94,24 @@ Respond with exactly "SKIP" or "ANSWER" - nothing else."""
 
     try:
         result = await openai_client.call_agent(
-            "You are a conversation analysis expert specialized in understanding user intent.",
-            prompt,
-            []  # No chat history needed for this analysis
+            system_prompt="You are a conversation analysis expert specialized in understanding user intent.",
+            user_message=prompt,
+            chat_history=[],  # No chat history needed for this analysis
+            model=config['model'],
+            effort=config['effort'],
+            reasoning_summary=config['reasoning_summary']
         )
-        return "SKIP" in result.upper()
+        
+        # Extract content if it's a ReasoningResponse
+        content = result.content if hasattr(result, 'content') else result
+        return "SKIP" in content.upper()
     except Exception as e:
         # Return False if LLM fails - assume user wants to answer as safe default
         return False
 
 async def extract_expertise_level_llm(user_input: str, openai_client) -> Optional[str]:
     """
-    Extract expertise level from user input using LLM semantic analysis
+    Extract expertise level from user input using enhanced reasoning model analysis
     
     Args:
         user_input: User's response about their expertise
@@ -98,6 +120,11 @@ async def extract_expertise_level_llm(user_input: str, openai_client) -> Optiona
     Returns:
         Detected expertise level: "novice", "intermediate", "advanced", or None if unclear
     """
+    from config.reasoning_config import get_operation_config
+    
+    # Get configuration for expertise extraction
+    config = get_operation_config('expertise_extraction')
+    
     prompt = f"""You are analyzing a user's response to determine their technical expertise level.
 
 USER RESPONSE: "{user_input}"
@@ -123,11 +150,17 @@ Respond with exactly "NOVICE", "INTERMEDIATE", "ADVANCED", or "UNCLEAR" - nothin
 
     try:
         result = await openai_client.call_agent(
-            "You are an expert at assessing technical expertise levels.",
-            prompt,
-            []  # No chat history needed for this analysis
+            system_prompt="You are an expert at assessing technical expertise levels.",
+            user_message=prompt,
+            chat_history=[],  # No chat history needed for this analysis
+            model=config['model'],
+            effort=config['effort'],
+            reasoning_summary=config['reasoning_summary']
         )
-        result_upper = result.upper().strip()
+        
+        # Extract content if it's a ReasoningResponse
+        content = result.content if hasattr(result, 'content') else result
+        result_upper = content.upper().strip()
         if result_upper in ["NOVICE", "INTERMEDIATE", "ADVANCED"]:
             return result_upper.lower()
         else:

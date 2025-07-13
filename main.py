@@ -6,6 +6,7 @@ Main entry point for the interview system
 
 import os
 import sys
+import weave
 import asyncio
 from dotenv import load_dotenv
 
@@ -25,6 +26,9 @@ from agents.best_practices import BestPracticesAgent
 from agents.document_generator import DocumentGeneratorAgent
 from agents.feedback_interpreter import FeedbackInterpreterAgent
 
+weave.init('shipyard') 
+
+@weave.op()
 async def main():
     """Main interview loop"""
     print("🚢 Welcome to Shipyard - AI Infrastructure Planning Assistant")
@@ -74,7 +78,8 @@ async def main():
         state = await best_practices.run_pillar(state)
         
         print("\n📄 Step 6: Generating your infrastructure document...")
-        document = await document_generator.generate_document(state)
+        all_summaries = str(state.summaries)
+        document = await document_generator.generate_document(all_summaries, "")
         
         print("\n🎉 Your infrastructure plan is ready!")
         print("=" * 60)

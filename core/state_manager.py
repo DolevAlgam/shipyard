@@ -153,16 +153,30 @@ class StateManager:
         return self.state.state["follow_up_counts"].get(key, 0)
     
     def build_system_prompt_context(self, pillar_name: str) -> Dict[str, Any]:
-        """Build context dictionary for system prompt formatting"""
+        """Build context dictionary for system prompt formatting with comprehensive conversation history"""
         if not self.state:
             return {}
+        
+        # Build conversation context from ALL pillars to prevent duplicate questions
+        all_conversations = {}
+        for pillar, chat_history in self.state.chat_history.items():
+            if chat_history:  # Only include pillars with actual conversation
+                conversation_text = []
+                for msg in chat_history:
+                    role = msg.get('role', 'unknown')
+                    content = msg.get('content', '')
+                    conversation_text.append(f"{role.upper()}: {content}")
+                all_conversations[pillar] = "\n".join(conversation_text)
         
         context = {
             "expertise_level": self.state.state["user_profile"].get("expertise_level", "unknown"),
             "gauged_complexity": self.state.state["user_profile"].get("gauged_complexity", "unknown"),
             "project_description": self.state.state["user_profile"].get("project_description", "No description yet"),
             "all_summaries": json.dumps(self.state.summaries, indent=2),
-            "current_document": json.dumps(self.state.state["current_document"], indent=2)
+            "current_document": json.dumps(self.state.state["current_document"], indent=2),
+            # NEW: Include full conversation history from ALL pillars
+            "all_conversations": json.dumps(all_conversations, indent=2) if all_conversations else "No previous conversations",
+            "previous_pillars_completed": list(all_conversations.keys())
         }
         
         return context

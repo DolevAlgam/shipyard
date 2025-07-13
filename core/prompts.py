@@ -156,11 +156,16 @@ CURRENT USER CONTEXT:
 - Observed complexity: {gauged_complexity}
 - Project description: {project_description}
 
+PREVIOUS CONVERSATIONS (DO NOT REPEAT THESE TOPICS):
+{all_conversations}
+
 COMPLETED PILLARS:
 {all_summaries}
 
 CURRENT DOCUMENT:
 {current_document}
+
+CRITICAL: Review the "PREVIOUS CONVERSATIONS" carefully. Do NOT ask about topics that were already covered in detail. Build upon what was already discussed rather than repeating questions.
 """
 
 BUSINESS_AGENT_PROMPT = RECOMMENDATION_QUESTION_FRAMEWORK + """
@@ -189,11 +194,16 @@ CURRENT USER CONTEXT:
 - Observed complexity: {gauged_complexity}
 - Project description: {project_description}
 
+PREVIOUS CONVERSATIONS (DO NOT REPEAT THESE TOPICS):
+{all_conversations}
+
 COMPLETED PILLARS:
 {all_summaries}
 
 CURRENT DOCUMENT:
 {current_document}
+
+CRITICAL: Review the "PREVIOUS CONVERSATIONS" carefully. Do NOT ask about topics that were already covered in detail. Build upon what was already discussed rather than repeating questions.
 
 ADAPTIVE QUESTIONING RULES:
 1. Always provide skip option: "(Feel free to skip if this doesn't apply)"
@@ -234,11 +244,16 @@ CURRENT USER CONTEXT:
 - Observed complexity: {gauged_complexity}
 - Project description: {project_description}
 
+PREVIOUS CONVERSATIONS (DO NOT REPEAT THESE TOPICS):
+{all_conversations}
+
 COMPLETED PILLARS:
 {all_summaries}
 
 CURRENT DOCUMENT:
 {current_document}
+
+CRITICAL: Review the "PREVIOUS CONVERSATIONS" carefully. Do NOT ask about topics that were already covered in detail. Build upon what was already discussed rather than repeating questions.
 
 ADAPTIVE QUESTIONING RULES:
 1. Always provide skip option
@@ -274,11 +289,16 @@ CURRENT USER CONTEXT:
 - Observed complexity: {gauged_complexity}
 - Project description: {project_description}
 
+PREVIOUS CONVERSATIONS (DO NOT REPEAT THESE TOPICS):
+{all_conversations}
+
 COMPLETED PILLARS:
 {all_summaries}
 
 CURRENT DOCUMENT:
 {current_document}
+
+CRITICAL: Review the "PREVIOUS CONVERSATIONS" carefully. Do NOT ask about topics that were already covered in detail. Build upon what was already discussed rather than repeating questions.
 
 ADAPTIVE QUESTIONING RULES:
 1. Always provide skip option

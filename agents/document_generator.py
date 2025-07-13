@@ -65,9 +65,9 @@ class DocumentGeneratorAgent(BaseAgent):
             {all_summaries}
             
             USER PROFILE:
-            - Expertise Level: {self.state_manager.get_user_expertise()}
-            - Project Type: {self.state_manager.get_project_description()}
-            - Technical Context: {self.state_manager.get_state().get('technical_context', 'Not specified')}
+            - Expertise Level: {self.state_manager.get_user_profile().get('expertise_level', 'Unknown')}
+            - Project Type: {self.state_manager.get_user_profile().get('project_description', 'Not specified')}
+            - Technical Context: Not specified
             """
             
             # Use architecture recommendation operation mode
@@ -78,11 +78,11 @@ class DocumentGeneratorAgent(BaseAgent):
                 operation_mode="architecture_recommendation"
             )
             
-            self.logger.info("Architecture recommendation generated successfully")
+            print("Architecture recommendation generated successfully")
             return architecture_response
             
         except Exception as e:
-            self.logger.error(f"Error generating architecture recommendation: {str(e)}")
+            print(f"Error generating architecture recommendation: {str(e)}")
             return "Architecture recommendation could not be generated due to an error."
     
     async def _generate_main_document(self, all_summaries: str, current_document: str, architecture_recommendation: str) -> str:
@@ -106,8 +106,8 @@ class DocumentGeneratorAgent(BaseAgent):
         {all_summaries}
         
         USER PROFILE:
-        - Expertise Level: {self.state_manager.get_user_expertise()}
-        - Project Complexity: {self.state_manager.get_project_description()}
+        - Expertise Level: {self.state_manager.get_user_profile().get('expertise_level', 'Unknown')}
+        - Project Complexity: {self.state_manager.get_user_profile().get('project_description', 'Not specified')}
         
         EXISTING DOCUMENT (if any):
         {current_document if current_document else "No existing document"}
@@ -126,7 +126,7 @@ class DocumentGeneratorAgent(BaseAgent):
         )
         
         # Save the generated document
-        self._save_document(response)
+        self.save_document(response)
         
         return response
     

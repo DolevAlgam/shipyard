@@ -63,24 +63,24 @@ REASONING_AGENT_CONFIG = {
         'description': 'Interpreting user feedback requires understanding nuanced communication'
     },
     
-    # Fast operations that should stay on GPT-4o for performance
+    # Upgraded operations to use reasoning models for better performance
     'follow_up_detection': {
-        'model': 'gpt-4o', 
-        'effort': None, 
-        'reasoning_summary': None,
-        'description': 'Fast follow-up detection for conversational flow'
+        'model': 'o3-mini', 
+        'effort': 'medium', 
+        'reasoning_summary': 'auto',
+        'description': 'Enhanced follow-up detection using reasoning for better conversational flow'
     },
     'skip_detection': {
-        'model': 'gpt-4o', 
-        'effort': None, 
-        'reasoning_summary': None,
-        'description': 'Quick skip request identification'
+        'model': 'o3-mini', 
+        'effort': 'medium', 
+        'reasoning_summary': 'auto',
+        'description': 'Improved skip request identification using reasoning capabilities'
     },
     'expertise_extraction': {
-        'model': 'gpt-4o', 
-        'effort': None, 
-        'reasoning_summary': None,
-        'description': 'Fast expertise level assessment'
+        'model': 'o3-mini', 
+        'effort': 'medium', 
+        'reasoning_summary': 'auto',
+        'description': 'Enhanced expertise level assessment using reasoning'
     }
 }
 
@@ -157,6 +157,11 @@ def get_agent_config(agent_name: str) -> Dict[str, Optional[str]]:
 
 def get_operation_config(operation_mode: str) -> Dict[str, Optional[str]]:
     """Get configuration for a specific operation mode"""
+    # First check REASONING_AGENT_CONFIG for fast operations like skip_detection, follow_up_detection
+    if operation_mode in REASONING_AGENT_CONFIG:
+        return REASONING_AGENT_CONFIG[operation_mode]
+    
+    # Then check OPERATION_MODE_CONFIG for other operation modes
     return OPERATION_MODE_CONFIG.get(operation_mode, {
         'model': 'gpt-4o',
         'effort': None,

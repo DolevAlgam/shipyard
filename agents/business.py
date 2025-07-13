@@ -57,21 +57,38 @@ class BusinessAgent(BaseAgent):
             # Build system prompt with current context
             system_prompt = self._build_system_prompt(state)
             
-            # Determine the message for the agent
             if follow_up_count == 0:
                 # First time asking about this topic
-                agent_input = f"Ask the user about: {topic}"
+                enhanced_system_prompt = f"{system_prompt}\n\nYour task: Ask the user about {topic}. Provide a clear, focused question based on their expertise level and previous conversations."
+                
+                chat_history = self.state_manager.get_chat_history(self.pillar_name)
+                agent_response = await self.client.call_agent(
+                    system_prompt=enhanced_system_prompt,
+                    user_message="Hi! I'm ready to answer your questions.",
+                    chat_history=chat_history,
+                    model=self.model,
+                    effort=self.effort,
+                    reasoning_summary=self.reasoning_summary
+                )
+                
+                # Extract content if it's a ReasoningResponse
+                agent_response = agent_response.content if hasattr(agent_response, 'content') else agent_response
             else:
-                # Follow-up based on user's response
-                agent_input = "The user needs clarification or you need to probe deeper. Provide a follow-up question or explanation."
-            
-            # Get agent's question/response
-            agent_response = await self.get_response(
-                system_prompt=system_prompt,
-                user_message=agent_input,
-                openai_client=self.client,
-                chat_history=self.state_manager.get_chat_history(self.pillar_name)
-            )
+                # Follow-up based on user's actual previous response in chat history
+                enhanced_system_prompt = f"{system_prompt}\n\nThe user's previous answer needs clarification or follow-up. Ask a more specific question or provide helpful explanation to get the information you need."
+                
+                chat_history = self.state_manager.get_chat_history(self.pillar_name)
+                agent_response = await self.client.call_agent(
+                    system_prompt=enhanced_system_prompt,
+                    user_message="Could you ask me a follow-up question about this?",
+                    chat_history=chat_history,
+                    model=self.model,
+                    effort=self.effort,
+                    reasoning_summary=self.reasoning_summary
+                )
+                
+                # Extract content if it's a ReasoningResponse
+                agent_response = agent_response.content if hasattr(agent_response, 'content') else agent_response
             
             # Display agent's question
             print(f"\n{agent_response}")

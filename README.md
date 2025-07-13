@@ -21,31 +21,40 @@ Shipyard is an AI-powered infrastructure planning assistant that interviews engi
 
 ### Technology Stack
 - **Language**: Python 3.11
-- **LLM API**: OpenAI GPT-4o via Chat Completions API
+- **Primary LLM API**: OpenAI o3 and o3-mini via Reasoning API
+- **Fast Operations Models**: GPT-4o for skip detection, follow-up detection, and expertise extraction
 - **API Library**: OpenAI Python SDK v1.95.1 (from PyPI)
-- **Agent Orchestration**: Plain Python (no framework for MVP)
+- **Agent Orchestration**: Plain Python with enhanced context sharing (no framework for MVP)
 - **Future Consideration**: Migration to LangGraph for complex workflows
 
 ### High-Level Architecture
 
 ```
-[User] <-> [Main Interview Loop] <-> [OpenAI SDK] <-> [Chat Completions API]
-               |
-               v
-        [Agent Controllers]
-               |
-               v
-        [State Management]
+[User] <-> [Main Interview Loop] <-> [OpenAI SDK] <-> [Reasoning API (o3/o3-mini)]
+               |                                            |
+               v                                            v
+        [Agent Controllers]                        [Chat Completions API (GPT-4o)]
+               |                                            |
+               v                                            v
+        [Enhanced State Management] <-----------> [Fast Operations Engine]
                |
                v
         [Document Generation]
 ```
 
 ### API Usage Details
-- **Primary API**: OpenAI Chat Completions API (`/v1/chat/completions`)
+- **Primary API**: OpenAI Reasoning API (`/v1/chat/completions`) for o3 and o3-mini
+- **Fast Operations API**: OpenAI Chat Completions API for GPT-4o fast operations
 - **SDK Library**: `openai` v1.95.1 Python package for API interactions
-- **Model**: GPT-4o for all agent responses
-- **Message Format**: Structured conversation history with role-based messages
+- **Primary Models**: o3 and o3-mini for main agent responses and document generation
+- **Fast Operations Model**: GPT-4o for skip detection, follow-up detection, and expertise extraction
+- **Message Format**: Structured conversation history with role-based messages and enhanced context sharing
+
+### Enhanced Context Management
+- **Cross-Agent Memory**: All agents receive complete conversation history from previous agents
+- **Duplicate Prevention**: Agents are explicitly instructed to avoid repeating topics already covered
+- **Technology Stack Persistence**: Once user mentions specific technologies, all subsequent agents build upon this information
+- **Message Role Separation**: Clear separation between system instructions and user conversations
 
 ## Agent Definitions and Responsibilities
 
@@ -146,8 +155,8 @@ state = {
    ```python
    # Natural conversation flow within a single agent/pillar
    messages = [
-       {"role": "system", "content": "You are a business expert. [STATE CONTEXT INJECTED]"},
-       {"role": "user", "content": "Ask me about scaling"},
+       {"role": "system", "content": "You are a business expert. [STATE CONTEXT INJECTED]\n\nPREVIOUS CONVERSATIONS (DO NOT REPEAT THESE TOPICS):\n[CONTEXT FROM OTHER AGENTS]"},
+       {"role": "user", "content": "Hi! I'm ready to answer your questions"},  # Natural conversation starter
        {"role": "assistant", "content": "What kind of traffic patterns do you expect?"},
        {"role": "user", "content": "About 10k users monthly"},
        # Continues naturally within same agent...
@@ -160,7 +169,8 @@ state = {
    state = {
        "user_profile": {"expertise_level": "intermediate"},
        "current_document": {"architecture": "...", "security": "..."},
-       "all_conversations": [...]  # For debugging
+       "all_conversations": [...],  # Complete conversation archive for DocumentGenerator
+       "previous_pillars_completed": ["profiler", "business"]  # Track completion
    }
    ```
 
@@ -173,10 +183,13 @@ state = {
    }
    ```
 
-**Flow:**
+**Enhanced Flow with Reasoning Models:**
 - Each agent maintains its own **chat history** naturally
-- **State** gets injected into system prompts for context
+- **State** gets injected into system prompts with previous agent context
 - **Summaries** extracted after each pillar for planning
+- **Primary Operations** use o3 and o3-mini reasoning for main agent conversations and document generation
+- **Fast Operations** use GPT-4o for skip detection, follow-up detection, and expertise extraction
+- **Cross-Agent Context** prevents duplicate questions and builds upon mentioned technologies
 
 ### Example: How All Three Work Together
 
@@ -306,7 +319,7 @@ flowchart TD
 async def run_interview():
     state = initialize_state()
     
-    # Run each pillar in sequence
+    # Run each pillar in sequence with enhanced context sharing
     state = await run_pillar("profiler", PROFILER_TOPICS, state)
     state = await run_pillar("business", BUSINESS_TOPICS, state)
     state = await run_pillar("app", APP_TOPICS, state)
@@ -315,7 +328,7 @@ async def run_interview():
     # Apply best practices to fill gaps
     state = await apply_best_practices(state)
     
-    # Generate complete document
+    # Generate complete document with full conversation context
     doc = await generate_document(state)
     
     # Review and revision loop
@@ -336,44 +349,41 @@ async def run_pillar(pillar_name, topics, state):
         topic_complete = False
         
         while not topic_complete and follow_up_count < max_follow_ups:
-            # Build system prompt with current state
-            system_prompt = build_system_prompt(agent_prompt, state, pillar_name)
+            # Build system prompt with enhanced context from all previous agents
+            system_prompt = build_system_prompt_context(agent_prompt, state, pillar_name)
             
-            # Determine the message for the agent
-            if follow_up_count == 0:
-                # First time asking about this topic
-                agent_input = f"Ask the user about: {topic}"
+            # Natural conversation flow - no fake user instructions
+            if not state["chat_history"][pillar_name]:
+                # First interaction with this agent
+                user_input = "Hi! I'm ready to answer your questions"
             else:
-                # Follow-up based on user's response
-                agent_input = "The user needs clarification or you need to probe deeper. Provide a follow-up question or explanation."
+                # Get actual user input
+                user_input = await get_user_input()
             
             # Get agent's questions/response
             agent_response = await call_openai_agent(
                 system_prompt, 
-                agent_input,
+                user_input,
                 state["chat_history"][pillar_name]
             )
             
-            # Get user's answer
-            user_answer = await get_user_input(agent_response)
-            
-            # Update chat history
+            # Update chat history with proper role separation
             state["chat_history"][pillar_name].extend([
                 {"role": "assistant", "content": agent_response},
-                {"role": "user", "content": user_answer}
+                {"role": "user", "content": user_input}
             ])
             
-            # Check if we need follow-up using LLM analysis
-            if await needs_follow_up_llm(user_answer, agent_response):
+            # Check if we need follow-up using GPT-4o fast operations
+            if await needs_follow_up_fast_operation(user_input, agent_response):
                 follow_up_count += 1
                 state["state"]["follow_up_counts"][f"{pillar_name}.{topic}"] = follow_up_count
             else:
                 topic_complete = True
             
-            # Log for debugging
+            # Log complete conversation for DocumentGenerator
             state["state"]["all_conversations"].extend([
                 {"agent": pillar_name, "role": "assistant", "content": agent_response},
-                {"agent": pillar_name, "role": "user", "content": user_answer}
+                {"agent": pillar_name, "role": "user", "content": user_input}
             ])
     
     # Extract summary after pillar completes using AI summarization
@@ -382,12 +392,15 @@ async def run_pillar(pillar_name, topics, state):
         state["chat_history"][pillar_name]
     )
     
+    # Track completed pillars for context sharing
+    state["state"]["previous_pillars_completed"].append(pillar_name)
+    
     return state
 
-async def needs_follow_up_llm(user_answer, agent_question):
+async def needs_follow_up_fast_operation(user_answer, agent_question):
     """
-    Use LLM to determine if user's answer indicates they need clarification or follow-up
-    No keyword matching - pure AI-based understanding
+    Use GPT-4o fast operations model to determine if user's answer indicates need for clarification
+    Enhanced with reasoning capabilities for better understanding
     """
     prompt = f"""
     Analyze if this user response indicates confusion, uncertainty, or need for clarification:
@@ -395,17 +408,17 @@ async def needs_follow_up_llm(user_answer, agent_question):
     Agent Question: {agent_question}
     User Response: {user_answer}
     
-    Respond with only "YES" if follow-up is needed, "NO" if the answer is clear and complete.
+    Consider:
+    - Does the user ask for clarification or explanation?
+    - Is the response vague, uncertain, or incomplete?
+    - Does the user show confusion about technical concepts?
+    - Would a follow-up question help gather more specific information?
     
-    Follow-up is needed when the user:
-    - Asks for clarification or explanation
-    - Gives vague or uncertain responses
-    - Shows confusion about the topic
-    - Provides incomplete information
+    Respond with only "YES" if follow-up is needed, "NO" if the answer is clear and complete.
     """
     
     response = await client.chat.completions.create(
-        model="gpt-4o-mini",  # Fast model for quick decisions
+        model="gpt-4o",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.1,
         max_tokens=10
@@ -413,9 +426,57 @@ async def needs_follow_up_llm(user_answer, agent_question):
     
     return response.choices[0].message.content.strip().upper() == "YES"
 
+def build_system_prompt_context(agent_base_prompt, state, pillar_name):
+    """
+    Build system prompt with enhanced context sharing from all previous agents
+    Prevents duplicate questions and builds upon mentioned technologies
+    """
+    # Get conversations from all completed pillars
+    previous_conversations = []
+    for completed_pillar in state["state"]["previous_pillars_completed"]:
+        if completed_pillar in state["chat_history"]:
+            pillar_convo = state["chat_history"][completed_pillar]
+            previous_conversations.extend([
+                f"{completed_pillar.upper()}: {msg['content']}" 
+                for msg in pillar_convo
+            ])
+    
+    context = {
+        "expertise_level": state["state"]["user_profile"].get("expertise_level", "unknown"),
+        "gauged_complexity": state["state"]["user_profile"].get("gauged_complexity", "unknown"),
+        "project_description": state["state"]["user_profile"].get("project_description", "No description yet"),
+        "all_summaries": json.dumps(state["summaries"], indent=2),
+        "current_document": json.dumps(state["state"]["current_document"], indent=2),
+        "previous_conversations": "\n".join(previous_conversations)
+    }
+    
+    # Enhanced prompt with context injection
+    enhanced_prompt = f"""
+{agent_base_prompt}
+
+PREVIOUS CONVERSATIONS (DO NOT REPEAT THESE TOPICS):
+{context['previous_conversations']}
+
+CURRENT STATE CONTEXT:
+- User expertise: {context['expertise_level']}
+- Gauged complexity: {context['gauged_complexity']}
+- Project: {context['project_description']}
+
+SUMMARIES FROM COMPLETED PILLARS:
+{context['all_summaries']}
+
+IMPORTANT: 
+- Do NOT ask about topics already covered in previous conversations
+- BUILD UPON any technologies, platforms, or preferences already mentioned
+- If user mentioned specific tech stack (e.g., Railway, GCP, React), acknowledge and use this context
+- Adapt question complexity to user's demonstrated expertise level
+"""
+    
+    return enhanced_prompt
+
 async def summarize_pillar_llm(pillar_name, chat_history):
     """
-    Use dedicated LLM call to create comprehensive summaries
+    Use o3-mini reasoning model to create comprehensive summaries
     No rule-based extraction - pure AI understanding
     """
     conversation = "\n".join([
@@ -433,9 +494,10 @@ async def summarize_pillar_llm(pillar_name, chat_history):
     Return a structured JSON summary capturing all relevant information.
     """
     
-    response = await client.chat.completions.create(
-        model="gpt-4o",
+    response = await client.beta.chat.completions.parse(
+        model="o3-mini",
         messages=[{"role": "user", "content": prompt}],
+        reasoning_effort="medium",
         temperature=0.2,
         max_tokens=1000
     )
@@ -457,14 +519,15 @@ client = OpenAI(
 
 async def call_openai_agent(system_prompt, user_message, chat_history=None):
     """
-    Call OpenAI Chat Completions API with natural conversation flow
+    Call OpenAI Reasoning API with o3/o3-mini for main agent conversations
+    Enhanced with context sharing to prevent duplicate questions
     
     Args:
-        system_prompt: Agent's system prompt (includes state context)
+        system_prompt: Agent's system prompt (includes enhanced context from all agents)
         user_message: Current user input  
         chat_history: Chat history for THIS agent/pillar only
     """
-    # Build messages object - always start with system prompt
+    # Build messages object - always start with enhanced system prompt
     messages = [{"role": "system", "content": system_prompt}]
     
     # Add chat history if this agent has previous conversations
@@ -474,40 +537,32 @@ async def call_openai_agent(system_prompt, user_message, chat_history=None):
     # Add current user message
     messages.append({"role": "user", "content": user_message})
     
-    response = client.chat.completions.create(
-        model="gpt-4o",
+    response = client.beta.chat.completions.parse(
+        model="o3-mini",  # Use o3-mini for primary agent conversations
         messages=messages,
+        reasoning_effort="medium",
         temperature=0.7,
         max_tokens=1000
     )
     
     return response.choices[0].message.content
 
-def build_system_prompt(agent_base_prompt, state, pillar_name):
+async def call_fast_operation(prompt, operation_type="follow_up_detection"):
     """
-    Build system prompt with injected state context
+    Call OpenAI Chat Completions API for fast operations using GPT-4o
+    
+    Args:
+        prompt: The operation prompt
+        operation_type: Type of operation for logging/debugging
     """
-    # Common context for all agents
-    context = {
-        "expertise_level": state["state"]["user_profile"].get("expertise_level", "unknown"),
-        "gauged_complexity": state["state"]["user_profile"].get("gauged_complexity", "unknown"),
-        "project_description": state["state"]["user_profile"].get("project_description", "No description yet"),
-        "all_summaries": json.dumps(state["summaries"], indent=2),
-        "current_document": json.dumps(state["state"]["current_document"], indent=2)
-    }
+    response = await client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.1,
+        max_tokens=50
+    )
     
-    # Add agent-specific context
-    if pillar_name == "business":
-        context.update({
-            "infrastructure_checklist": json.dumps(INFRASTRUCTURE_CHECKLIST, indent=2)
-        })
-    
-    # Format the prompt with context
-    try:
-        return agent_base_prompt.format(**context)
-    except KeyError:
-        # If some keys are missing, just return base prompt with available context
-        return f"{agent_base_prompt}\n\nCONTEXT:\n{json.dumps(context, indent=2)}"
+    return response.choices[0].message.content
 ```
 
 ### Topic Lists
@@ -618,8 +673,17 @@ IMPORTANT: Assess their actual expertise from HOW they describe their project, n
 - Store both their stated level and your assessment
 """
 
+### Business Agent Prompt
+```python
 BUSINESS_AGENT_PROMPT = """
 You are a business requirements expert for infrastructure planning. 
+
+CRITICAL CONTEXT AWARENESS:
+- Review PREVIOUS CONVERSATIONS carefully to avoid repeating topics
+- BUILD UPON any technologies, platforms, or providers already mentioned (e.g., Railway, GCP, AWS)
+- If user mentioned specific tech stack, acknowledge and use this as context for your questions
+- DO NOT ask about cloud providers if user already mentioned one
+- DO NOT repeat questions about scaling, users, or performance if already covered
 
 Based on the user's expertise level and how they describe things, adapt your questions:
 
@@ -638,10 +702,10 @@ FOR ADVANCED USERS:
 - Discuss tradeoffs: "Given your 99.99% uptime need, we'll need multi-region active-active"
 - Assume expertise but still clarify ambiguities
 
-CURRENT USER CONTEXT:
-- Stated expertise: {expertise_level}
-- Observed complexity: {gauged_complexity}
-- Project description: {project_description}
+TECHNOLOGY CONTEXT PERSISTENCE:
+- If user mentioned Railway, ask about scaling within Railway context
+- If user mentioned GCP, focus on GCP-specific business considerations
+- If user mentioned specific frameworks/languages, tailor performance questions accordingly
 
 ADAPTIVE QUESTIONING RULES:
 1. Always provide skip option: "(Feel free to skip if this doesn't apply)"
@@ -745,7 +809,7 @@ Generate a professional, actionable infrastructure plan.
 - For MVP: Warn users that closing will lose progress
 
 ### Unclear Answers
-- Question Agent should detect ambiguity
+- Question Agent should detect ambiguity using GPT-4o fast operations
 - Follow up with clarifying questions
 - Mark assumptions clearly in document
 
@@ -753,6 +817,19 @@ Generate a professional, actionable infrastructure plan.
 - OpenAI API failures: Implement exponential backoff
 - Rate limiting: Add delays between API calls
 - Malformed responses: Basic retry logic
+- Reasoning API failures (o3/o3-mini): Fallback to GPT-4o for primary operations
+- Fast operations failures: Basic retry logic for GPT-4o
+
+### Message Role Separation Issues
+- **Fixed**: Agents no longer receive instructions as user messages
+- **Implementation**: Clear separation between system prompts and user conversations
+- **Natural Flow**: Agents start conversations naturally without fake user instructions
+
+### Context Sharing Problems
+- **Enhanced**: All agents receive complete conversation history from previous agents
+- **Duplicate Prevention**: Explicit instructions to avoid repeating covered topics  
+- **Technology Persistence**: Mentioned technologies flow to all subsequent agents
+- **Memory Management**: Track completed pillars and conversation state
 
 ## Success Metrics
 
@@ -898,5 +975,16 @@ python main.py
 - **Python**: 3.11
 - **OpenAI SDK**: v1.95.1 (from PyPI)
 - **OpenAI API Key**: Required for all LLM interactions
+- **OpenAI Reasoning API Access**: Required for o3 and o3-mini primary operations (main agent conversations, document generation, summarization)
+- **OpenAI Chat Completions API Access**: Required for GPT-4o fast operations (skip detection, follow-up detection, expertise extraction)
+- **Configuration Files**: 
+  - `config/reasoning_config.py` - o3/o3-mini reasoning model configuration
+  - Environment variables for API keys
+
+### Enhanced Features
+- **Multi-Model Support**: o3 and o3-mini for primary operations, GPT-4o for fast operations
+- **Context Persistence**: Complete conversation history shared across all agents
+- **Technology Memory**: Mentioned technologies and preferences flow to subsequent agents
+- **Duplicate Prevention**: Agents avoid repeating topics covered by previous agents
 
 *This document is version 1.0 of the Shipyard MVP specification.*
