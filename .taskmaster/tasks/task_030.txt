@@ -1,0 +1,233 @@
+# Task ID: 30
+# Title: Implement Technology Stack Memory and Context Persistence System
+# Status: pending
+# Dependencies: 2, 3, 4, 5, 16, 18
+# Priority: high
+# Description: Create a persistent technology stack memory system that captures and maintains user-specified technologies (Railway, GCP APIs, React, etc.) throughout the conversation, preventing redundant questions and enabling all agents to build upon previously mentioned technology choices.
+# Details:
+**TECHNOLOGY STACK MEMORY AND CONTEXT PERSISTENCE SYSTEM**:
+
+**1. Technology Stack Memory Store** (`core/tech_stack_memory.py`):
+```python
+from typing import Dict, List, Set, Optional
+from dataclasses import dataclass, field
+from enum import Enum
+import re
+
+class TechCategory(str, Enum):
+    CLOUD_PROVIDER = "cloud_provider"
+    HOSTING_PLATFORM = "hosting_platform"
+    DATABASE = "database"
+    FRONTEND_FRAMEWORK = "frontend_framework"
+    BACKEND_FRAMEWORK = "backend_framework"
+    API_SERVICES = "api_services"
+    MONITORING = "monitoring"
+    CI_CD = "ci_cd"
+    STORAGE = "storage"
+    MESSAGING = "messaging"
+
+@dataclass
+class TechnologyMention:
+    name: str
+    category: TechCategory
+    confidence: float
+    context: str
+    mentioned_at: str
+    user_intent: str  # "using", "considering", "migrating_from", "avoiding"
+
+class TechStackMemory:
+    def __init__(self):
+        self.mentioned_technologies: Dict[str, TechnologyMention] = {}
+        self.technology_patterns = {
+            "cloud_provider": ["aws", "azure", "gcp", "google cloud", "digital ocean"],
+            "hosting_platform": ["railway", "vercel", "netlify", "heroku", "render"],
+            "database": ["postgresql", "mysql", "mongodb", "redis", "supabase"],
+            "frontend_framework": ["react", "vue", "angular", "svelte", "next.js"],
+            # ... comprehensive technology mapping
+        }
+    
+    def extract_technologies(self, user_input: str, conversation_context: str) -> List[TechnologyMention]:
+        """Extract technology mentions using LLM-based semantic analysis"""
+        # Use OpenAI to identify technologies and their context
+        pass
+    
+    def get_confirmed_stack(self) -> Dict[TechCategory, str]:
+        """Return user's confirmed technology choices"""
+        pass
+    
+    def should_skip_question(self, question_topic: str) -> bool:
+        """Determine if a question should be skipped based on existing tech choices"""
+        pass
+```
+
+**2. Agent Integration System** (`core/tech_aware_prompting.py`):
+```python
+class TechAwarePromptBuilder:
+    def __init__(self, tech_memory: TechStackMemory):
+        self.tech_memory = tech_memory
+    
+    def build_context_aware_prompt(self, base_prompt: str, agent_type: str) -> str:
+        """Inject technology context into agent prompts"""
+        confirmed_stack = self.tech_memory.get_confirmed_stack()
+        
+        tech_context = self._build_tech_context(confirmed_stack)
+        
+        return f"""
+{base_prompt}
+
+IMPORTANT TECHNOLOGY CONTEXT:
+{tech_context}
+
+CRITICAL INSTRUCTIONS:
+- DO NOT ask about technologies already specified by the user
+- BUILD UPON the mentioned technologies in your recommendations
+- ASSUME the user wants to continue using their specified stack unless they indicate otherwise
+- REFERENCE their technology choices when making suggestions
+"""
+    
+    def _build_tech_context(self, stack: Dict) -> str:
+        """Format technology context for prompt injection"""
+        if not stack:
+            return "No specific technologies mentioned yet."
+        
+        context_lines = []
+        for category, tech in stack.items():
+            context_lines.append(f"- {category.replace('_', ' ').title()}: {tech}")
+        
+        return "User has specified:\n" + "\n".join(context_lines)
+```
+
+**3. State Manager Integration** (`core/state_manager.py` updates):
+```python
+class StateManager:
+    def __init__(self):
+        # ... existing initialization
+        self.tech_memory = TechStackMemory()
+    
+    def process_user_input(self, user_input: str, agent_context: str):
+        """Process input and extract technology mentions"""
+        technologies = self.tech_memory.extract_technologies(user_input, agent_context)
+        
+        for tech in technologies:
+            self.tech_memory.mentioned_technologies[tech.name] = tech
+            
+        # Update state with technology context
+        self.state["technology_stack"] = self.tech_memory.get_confirmed_stack()
+```
+
+**4. Agent Base Class Updates** (`agents/base_agent.py`):
+```python
+class BaseAgent(ABC):
+    def __init__(self, name: str, topics: List[str], prompt: str):
+        self.name = name
+        self.topics = topics
+        self.base_prompt = prompt
+        self.tech_aware_prompter = None  # Injected during initialization
+    
+    def get_context_aware_prompt(self, state: Dict) -> str:
+        """Get prompt with technology context injected"""
+        if self.tech_aware_prompter:
+            return self.tech_aware_prompter.build_context_aware_prompt(
+                self.base_prompt, 
+                self.name
+            )
+        return self.base_prompt
+    
+    async def process_topic(self, topic: str, state: Dict, openai_client) -> Dict:
+        # Use context-aware prompt instead of base prompt
+        prompt = self.get_context_aware_prompt(state)
+        # ... rest of processing
+```
+
+**5. Question Filtering System** (`core/question_filter.py`):
+```python
+class QuestionFilter:
+    def __init__(self, tech_memory: TechStackMemory):
+        self.tech_memory = tech_memory
+    
+    def should_ask_question(self, question: str, topic: str) -> bool:
+        """Determine if a question should be asked based on existing context"""
+        # Check if question is about already-specified technologies
+        if self._is_redundant_tech_question(question, topic):
+            return False
+        
+        return True
+    
+    def _is_redundant_tech_question(self, question: str, topic: str) -> bool:
+        """Check if question asks about already-specified technologies"""
+        confirmed_stack = self.tech_memory.get_confirmed_stack()
+        
+        # Use LLM to determine if question is redundant
+        redundancy_check_prompt = f"""
+        User has already specified these technologies: {confirmed_stack}
+        
+        Question being considered: {question}
+        Topic: {topic}
+        
+        Is this question redundant given what the user has already told us?
+        Return: YES or NO
+        """
+        # Call OpenAI for semantic redundancy check
+        pass
+```
+
+**6. Integration with Existing Agents**:
+- Update all agent classes to use `get_context_aware_prompt()`
+- Inject `TechAwarePromptBuilder` during agent initialization
+- Modify agent processing to check question relevance before asking
+- Add technology extraction to all user input processing
+
+**7. Conversation Flow Enhancement**:
+```python
+async def enhanced_agent_conversation(agent, topic, state, openai_client):
+    """Enhanced conversation flow with technology awareness"""
+    # Extract technologies from any user input
+    state_manager.process_user_input(user_input, f"{agent.name}:{topic}")
+    
+    # Filter questions based on existing context
+    if not question_filter.should_ask_question(proposed_question, topic):
+        # Skip redundant question, move to next topic
+        return
+    
+    # Use context-aware prompting
+    response = await agent.process_topic_with_context(topic, state, openai_client)
+```
+
+# Test Strategy:
+**COMPREHENSIVE TECHNOLOGY STACK MEMORY TESTING**:
+
+**1. Technology Extraction Testing**:
+- Test with user saying "I'm using Railway for hosting" → should extract Railway as hosting_platform
+- Test with "My React app connects to GCP APIs" → should extract React (frontend) and GCP APIs (api_services)
+- Test with "I'm considering migrating from Heroku to Railway" → should capture both with appropriate intent
+- Verify confidence scoring and context capture accuracy
+
+**2. Redundant Question Prevention Testing**:
+- After user mentions "Railway", test that agents don't ask "What cloud provider do you want to use?"
+- After "React" mention, verify no questions about frontend framework choice
+- Test with complex scenarios: "My Next.js app on Vercel uses Supabase" → should prevent hosting, frontend, and database questions
+
+**3. Context-Aware Prompting Testing**:
+- Verify agent prompts include technology context: "Given that you're using Railway..."
+- Test that recommendations build upon specified stack: suggesting Railway-compatible services
+- Ensure agents reference user's choices: "Since you mentioned React, I recommend..."
+
+**4. State Persistence Testing**:
+- Test technology memory persists across agent transitions
+- Verify Business Agent remembers technologies mentioned to Profiler Agent
+- Test that document generation includes all captured technologies
+
+**5. Edge Case Testing**:
+- Test with ambiguous mentions: "I use AWS" (could be hosting, APIs, storage)
+- Test with technology changes: user first says Heroku, then mentions migrating to Railway
+- Test with negative mentions: "I don't want to use AWS" → should avoid AWS recommendations
+
+**6. Integration Testing**:
+- Test complete interview flow with technology mentions throughout
+- Verify no redundant questions across all agent interactions
+- Test that final document reflects all mentioned technologies accurately
+
+**7. LLM-Based Semantic Testing**:
+- Test semantic understanding: "I deploy to the cloud" vs "I use Railway" (different specificity levels)
+- Test context interpretation: "We're on Railway" in response to hosting question vs casual mention
+- Verify intent detection: "using", "considering", "migrating from", "avoiding"

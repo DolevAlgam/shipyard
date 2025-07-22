@@ -1,0 +1,220 @@
+# Task ID: 25
+# Title: Fix Infinite Loop in Agent Self-Response to Clarification Prompts
+# Status: done
+# Dependencies: 8, 9, 21
+# Priority: high
+# Description: Fix critical bug where agents continuously respond to their own "Let me ask a follow-up question to clarify..." text, treating it as user input and creating an infinite conversation loop that makes the system completely unusable.
+# Details:
+**CRITICAL INFINITE LOOP BUG - SYSTEM BREAKING**
+
+**ROOT CAUSE ANALYSIS**:
+The system is incorrectly processing agent-generated clarification text ("Let me ask a follow-up question to clarify...") as if it were user input, causing agents to respond to themselves in an endless loop. This indicates fundamental flaws in:
+1. Input/output stream separation
+2. Message source identification
+3. Conversation state management
+4. Async processing boundaries
+
+**INVESTIGATION AREAS**:
+
+**1. Input Handler Contamination** (`ui/input_handler.py`):
+```python
+# Check for issues where agent output is being fed back as input:
+- Verify input buffer is properly cleared after user submission
+- Ensure agent responses are not written to input stream
+- Check for race conditions in async input processing
+- Validate that only actual user keyboard input triggers processing
+```
+
+**2. Conversation Flow Management** (`core/conversation_manager.py` or similar):
+```python
+# Identify where message source tracking fails:
+class Message:
+    def __init__(self, content: str, source: str, timestamp: float):
+        self.content = content
+        self.source = source  # 'user' or 'agent'
+        self.timestamp = timestamp
+        
+# Ensure proper message source identification:
+async def process_message(self, message: Message):
+    if message.source != 'user':
+        return  # Never process non-user messages as input
+```
+
+**3. Agent Response Processing** (`agents/base_agent.py`):
+```python
+# Fix areas where agent output might be misinterpreted:
+async def ask_follow_up(self, question: str):
+    # Mark this as agent-generated content
+    self.display_agent_message(question)
+    
+    # Wait for ONLY user input
+    user_response = await self.wait_for_user_input()
+    
+    # Validate response is actually from user
+    if not self.is_user_generated(user_response):
+        raise ValueError("Received non-user input in user response flow")
+```
+
+**4. Async Event Loop Issues**:
+```python
+# Check for async processing bugs:
+- Race conditions between output display and input collection
+- Event loop contamination where callbacks trigger on wrong events
+- Missing await statements causing premature execution
+- Improper task cancellation leaving orphaned handlers
+```
+
+**5. State Machine Fixes**:
+```python
+class ConversationState(Enum):
+    WAITING_FOR_USER = "waiting_for_user"
+    PROCESSING_USER_INPUT = "processing_user_input"
+    GENERATING_AGENT_RESPONSE = "generating_agent_response"
+    DISPLAYING_AGENT_OUTPUT = "displaying_agent_output"
+
+# Enforce strict state transitions:
+async def transition_state(self, new_state: ConversationState):
+    valid_transitions = {
+        ConversationState.WAITING_FOR_USER: [ConversationState.PROCESSING_USER_INPUT],
+        ConversationState.PROCESSING_USER_INPUT: [ConversationState.GENERATING_AGENT_RESPONSE],
+        ConversationState.GENERATING_AGENT_RESPONSE: [ConversationState.DISPLAYING_AGENT_OUTPUT],
+        ConversationState.DISPLAYING_AGENT_OUTPUT: [ConversationState.WAITING_FOR_USER]
+    }
+    
+    if new_state not in valid_transitions.get(self.current_state, []):
+        raise ValueError(f"Invalid state transition: {self.current_state} -> {new_state}")
+```
+
+**IMPLEMENTATION STEPS**:
+
+1. **Add Message Source Tracking**:
+   - Implement explicit source identification for all messages
+   - Add validation to prevent agent messages from entering input pipeline
+   - Create clear boundaries between user and agent message flows
+
+2. **Fix Input Collection**:
+   - Ensure input handler only processes actual keyboard/user events
+   - Add guards to prevent any agent-generated text from being treated as input
+   - Implement input source validation
+
+3. **Implement Conversation Lock**:
+   ```python
+   class ConversationLock:
+       def __init__(self):
+           self.is_waiting_for_user = False
+           self.lock = asyncio.Lock()
+       
+       async def wait_for_user_input(self):
+           async with self.lock:
+               self.is_waiting_for_user = True
+               try:
+                   # Only accept input when explicitly waiting
+                   user_input = await self.get_user_input()
+                   return user_input
+               finally:
+                   self.is_waiting_for_user = False
+   ```
+
+4. **Add Debug Logging**:
+   ```python
+   import logging
+   
+   logger = logging.getLogger(__name__)
+   
+   async def process_input(self, text: str, source: str):
+       logger.debug(f"Processing input: source={source}, text_preview={text[:50]}...")
+       if source != 'user':
+           logger.error(f"CRITICAL: Non-user input detected: {source}")
+           raise ValueError("Attempted to process non-user input")
+   ```
+
+5. **Emergency Circuit Breaker**:
+   ```python
+   class ConversationCircuitBreaker:
+       def __init__(self, max_consecutive_agent_responses=2):
+           self.consecutive_agent_responses = 0
+           self.max_allowed = max_consecutive_agent_responses
+       
+       def record_response(self, source: str):
+           if source == 'agent':
+               self.consecutive_agent_responses += 1
+               if self.consecutive_agent_responses > self.max_allowed:
+                   raise RuntimeError("EMERGENCY STOP: Detected agent self-response loop")
+           else:
+               self.consecutive_agent_responses = 0
+   ```
+
+**CRITICAL FIX LOCATIONS**:
+- `ui/input_handler.py`: Add source validation
+- `agents/base_agent.py`: Fix follow-up question handling
+- `core/conversation_manager.py`: Implement state machine
+- `main.py` or orchestration loop: Add circuit breaker
+
+# Test Strategy:
+**COMPREHENSIVE INFINITE LOOP BUG TESTING**:
+
+**1. Reproduce the Bug**:
+- Start the application and trigger a follow-up question scenario
+- Verify the bug occurs: agent responds to its own "Let me ask a follow-up question to clarify..."
+- Document the exact sequence of events leading to the loop
+- Capture logs showing the self-response pattern
+
+**2. Unit Tests for Message Source Tracking**:
+```python
+def test_message_source_validation():
+    # Test that agent messages are never processed as user input
+    agent_message = Message("Let me ask a follow-up question...", source="agent")
+    with pytest.raises(ValueError):
+        process_user_input(agent_message)
+    
+def test_user_input_only_processing():
+    # Verify only user-sourced messages are processed
+    user_message = Message("My answer", source="user")
+    result = process_user_input(user_message)
+    assert result is not None
+```
+
+**3. Integration Test for Conversation Flow**:
+```python
+async def test_no_self_response_loop():
+    # Simulate full conversation flow
+    conversation = ConversationManager()
+    
+    # Agent asks follow-up
+    await conversation.agent_response("Let me ask a follow-up question to clarify...")
+    
+    # Verify system is waiting for user input
+    assert conversation.state == ConversationState.WAITING_FOR_USER
+    
+    # Attempt to inject agent text as input (should fail)
+    with pytest.raises(ValueError):
+        await conversation.process_input("Let me ask a follow-up question...", source="agent")
+```
+
+**4. Circuit Breaker Testing**:
+- Test that circuit breaker triggers after 2 consecutive agent responses
+- Verify emergency stop prevents infinite loops
+- Ensure circuit breaker resets after user input
+
+**5. Async Race Condition Tests**:
+- Create stress tests with rapid input/output sequences
+- Test concurrent message processing
+- Verify no race conditions cause input contamination
+
+**6. End-to-End Validation**:
+- Run full interview flow with multiple follow-up questions
+- Verify each follow-up waits for actual user input
+- Confirm no agent self-responses occur
+- Test with various timing scenarios (fast/slow responses)
+
+**7. Regression Testing**:
+- Ensure fix doesn't break normal conversation flow
+- Verify follow-up questions still work correctly
+- Test that user can still provide input normally
+- Validate all agent types handle input correctly
+
+**8. Debug Output Verification**:
+- Enable debug logging and verify source tracking
+- Confirm all messages show correct source attribution
+- Check that state transitions follow expected pattern
+- Verify no unexpected state changes occur

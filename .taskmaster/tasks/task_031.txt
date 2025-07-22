@@ -1,0 +1,218 @@
+# Task ID: 31
+# Title: Fix Agent Message Role Separation to Prevent Instruction Leakage
+# Status: done
+# Dependencies: 3, 8, 25
+# Priority: high
+# Description: Fix critical bug where agents respond with acknowledgments like "Sure thing!" because they're receiving instructions formatted as user messages, causing confusion between actual user input and system instructions.
+# Details:
+**CRITICAL MESSAGE ROLE CONFUSION BUG - AGENTS RECEIVING INSTRUCTIONS AS USER INPUT**
+
+**ROOT CAUSE ANALYSIS**:
+The system is incorrectly passing agent instructions (e.g., "Ask the user about:") as user role messages, causing agents to respond to these instructions as if they were user input. This violates OpenAI's message role separation principles:
+- `system`: Instructions for the AI
+- `assistant`: AI's responses
+- `user`: Actual user input only
+
+**INVESTIGATION AREAS**:
+
+**1. OpenAI Client Message Construction** (`core/openai_client.py`):
+```python
+# CURRENT PROBLEMATIC PATTERN (likely):
+async def call_agent(self, system_prompt: str, user_message: str, chat_history=None):
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_message}  # THIS IS THE PROBLEM
+    ]
+    # If user_message contains "Ask the user about X", it's being sent as user role
+```
+
+**2. Agent Orchestration Layer** (`main.py` or orchestration logic):
+```python
+# PROBLEMATIC PATTERN:
+# Instructions like "Ask the user about their requirements" are being passed as user_message
+response = await openai_client.call_agent(
+    system_prompt=agent.prompt,
+    user_message="Ask the user about: " + topic  # WRONG - This is an instruction!
+)
+```
+
+**IMPLEMENTATION FIX**:
+
+**1. Update OpenAI Client to Support Proper Message Roles**:
+```python
+# core/openai_client.py
+async def call_agent(self, system_prompt: str, user_message: Optional[str] = None, 
+                    assistant_context: Optional[str] = None, chat_history=None):
+    messages = [{"role": "system", "content": system_prompt}]
+    
+    if chat_history:
+        messages.extend(chat_history)
+    
+    # Add assistant context if provided (for instructions)
+    if assistant_context:
+        messages.append({"role": "assistant", "content": assistant_context})
+    
+    # Only add user message if it's actual user input
+    if user_message and user_message.strip():
+        messages.append({"role": "user", "content": user_message})
+    
+    return await self._make_api_call(messages)
+```
+
+**2. Fix Agent Call Patterns Throughout Codebase**:
+```python
+# PATTERN 1: Initial topic introduction (no user input yet)
+response = await openai_client.call_agent(
+    system_prompt=f"{agent.prompt}\n\nCurrent topic: {topic}",
+    assistant_context="I need to ask the user about this topic.",
+    user_message=None  # No user input yet
+)
+
+# PATTERN 2: Processing actual user response
+response = await openai_client.call_agent(
+    system_prompt=agent.prompt,
+    user_message=user_input,  # Actual user input only
+    chat_history=conversation_history
+)
+
+# PATTERN 3: Instructions in system prompt
+enhanced_prompt = f"""
+{agent.prompt}
+
+Current topic to explore: {topic}
+Ask the user specific questions about this topic.
+Previous context: {summary}
+"""
+response = await openai_client.call_agent(
+    system_prompt=enhanced_prompt,
+    user_message=user_input if user_input else None
+)
+```
+
+**3. Audit and Fix All Agent Invocations**:
+- Search for all `call_agent` invocations
+- Identify where instructions are being passed as user messages
+- Move instructions to either:
+  - System prompt (preferred for context)
+  - Assistant role (for self-directed thoughts)
+  - Never in user role
+
+**4. Common Patterns to Fix**:
+```python
+# WRONG:
+await call_agent(prompt, f"Ask about {topic}")
+await call_agent(prompt, f"Follow up on: {detail}")
+await call_agent(prompt, "Clarify the previous answer")
+
+# CORRECT:
+await call_agent(
+    system_prompt=f"{prompt}\nAsk the user about: {topic}",
+    user_message=None
+)
+
+# OR:
+await call_agent(
+    system_prompt=prompt,
+    assistant_context=f"I should ask about {topic}",
+    user_message=actual_user_input
+)
+```
+
+**5. Update Agent Base Class** (`agents/base_agent.py`):
+```python
+async def process_topic(self, topic: str, state: Dict, openai_client) -> Dict:
+    # Build context-aware system prompt
+    system_prompt = self._build_system_prompt(topic, state)
+    
+    # Get user's last message (if any)
+    user_message = self._get_last_user_message(state)
+    
+    # Never pass instructions as user messages
+    response = await openai_client.call_agent(
+        system_prompt=system_prompt,
+        user_message=user_message,  # Only actual user input
+        chat_history=self._get_relevant_history(state)
+    )
+```
+
+**6. Validation Checks**:
+```python
+def validate_message_roles(messages: List[Dict]) -> None:
+    """Ensure no instructions appear in user role messages"""
+    instruction_patterns = [
+        "ask the user",
+        "ask about",
+        "follow up on",
+        "clarify",
+        "explore",
+        "inquire about"
+    ]
+    
+    for msg in messages:
+        if msg["role"] == "user":
+            content_lower = msg["content"].lower()
+            for pattern in instruction_patterns:
+                if pattern in content_lower:
+                    raise ValueError(f"Instruction '{pattern}' found in user message: {msg['content']}")
+```
+
+# Test Strategy:
+**COMPREHENSIVE MESSAGE ROLE SEPARATION TESTING**:
+
+**1. Reproduce the Bug**:
+- Run the system and observe agents responding with "Sure thing!" to instructions
+- Capture exact message flow showing instructions in user role
+- Document which agents/topics trigger this behavior
+
+**2. Message Role Validation Tests**:
+```python
+# Test that instructions never appear in user role
+def test_no_instructions_in_user_messages():
+    # Mock a topic discussion
+    response = await agent.process_topic("user_base", state, openai_client)
+    
+    # Verify call_agent was invoked correctly
+    assert "ask the user" not in call_agent.call_args[1].get("user_message", "")
+    assert "Ask about" not in call_agent.call_args[1].get("user_message", "")
+```
+
+**3. OpenAI Client Tests**:
+- Test new method signature with assistant_context parameter
+- Verify messages array construction with different input combinations
+- Ensure user role only contains actual user input
+
+**4. Agent Response Pattern Tests**:
+- Input: Agent receives topic to discuss
+- Expected: Agent asks question naturally without acknowledging instructions
+- Verify: No "Sure thing!", "I'll ask about that", etc. in responses
+
+**5. End-to-End Flow Tests**:
+```python
+# Test conversation flow without instruction leakage
+async def test_clean_conversation_flow():
+    # Start interview
+    await run_interview()
+    
+    # Verify first agent question doesn't acknowledge instructions
+    first_response = get_last_assistant_message()
+    assert "sure thing" not in first_response.lower()
+    assert "i'll ask" not in first_response.lower()
+    
+    # Provide user input
+    await provide_user_input("We have 1000 daily users")
+    
+    # Verify follow-up doesn't treat previous context as user input
+    follow_up = get_last_assistant_message()
+    assert follow_up.startswith(("That's helpful", "Great", "I see"))
+```
+
+**6. Regression Testing**:
+- Ensure fix doesn't break existing conversation flow
+- Verify agents still ask appropriate follow-up questions
+- Confirm context is maintained between messages
+
+**7. Edge Case Testing**:
+- Test with empty user input
+- Test with user saying "Ask me about security"
+- Test transition between agents
+- Test follow-up question scenarios

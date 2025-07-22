@@ -1,0 +1,296 @@
+# Task ID: 38
+# Title: Implement Infrastructure Decision Documentation System
+# Status: pending
+# Dependencies: 2, 3, 7, 34, 35
+# Priority: high
+# Description: Create a system that captures all user inputs from the interview process and documents the rationale behind every infrastructure decision, providing complete transparency about why specific choices were recommended based on what users told us.
+# Details:
+**SIMPLIFIED INFRASTRUCTURE DECISION DOCUMENTATION SYSTEM**
+
+**1. User Input Capture and Storage** (`core/user_input_tracker.py`):
+```python
+from dataclasses import dataclass, field
+from typing import List, Dict, Optional, Any
+from datetime import datetime
+import json
+import weave
+
+@dataclass
+class UserInput:
+    id: str
+    timestamp: datetime
+    agent_name: str
+    question_asked: str
+    user_response: str
+    topic: str
+    conversation_context: Dict[str, Any] = field(default_factory=dict)
+
+@dataclass
+class InfrastructureDecision:
+    decision_point: str
+    chosen_approach: str
+    user_inputs_that_led_to_this: List[UserInput]
+    rationale: str
+
+class UserInputTracker:
+    def __init__(self):
+        self.all_inputs: List[UserInput] = []
+        self.decisions: List[InfrastructureDecision] = []
+        
+    @weave.op()
+    def capture_user_input(self, agent_name: str, question: str, response: str, topic: str, context: Dict[str, Any] = None):
+        """Capture every user input during the interview"""
+        user_input = UserInput(
+            id=f"INPUT-{datetime.utcnow().timestamp()}",
+            timestamp=datetime.utcnow(),
+            agent_name=agent_name,
+            question_asked=question,
+            user_response=response,
+            topic=topic,
+            conversation_context=context or {}
+        )
+        self.all_inputs.append(user_input)
+        return user_input.id
+    
+    @weave.op()
+    def link_inputs_to_decision(self, decision_point: str, chosen_approach: str, relevant_input_ids: List[str], rationale: str):
+        """Link specific user inputs to infrastructure decisions"""
+        relevant_inputs = [inp for inp in self.all_inputs if inp.id in relevant_input_ids]
+        decision = InfrastructureDecision(
+            decision_point=decision_point,
+            chosen_approach=chosen_approach,
+            user_inputs_that_led_to_this=relevant_inputs,
+            rationale=rationale
+        )
+        self.decisions.append(decision)
+    
+    def get_all_inputs_by_agent(self, agent_name: str) -> List[UserInput]:
+        """Get all inputs collected by a specific agent"""
+        return [inp for inp in self.all_inputs if inp.agent_name == agent_name]
+    
+    def export_for_documentation(self) -> Dict[str, Any]:
+        """Export all inputs and decisions for document generation"""
+        return {
+            "total_inputs": len(self.all_inputs),
+            "user_inputs": [self._serialize_input(inp) for inp in self.all_inputs],
+            "infrastructure_decisions": [self._serialize_decision(dec) for dec in self.decisions]
+        }
+```
+
+**2. Simple Agent Integration** (`agents/base_agent.py` update):
+```python
+class BaseAgent:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.input_tracker: Optional[UserInputTracker] = None
+    
+    def set_input_tracker(self, tracker: UserInputTracker):
+        """Inject input tracker into agent"""
+        self.input_tracker = tracker
+    
+    async def ask_question(self, question: str, topic: str, state: Dict, openai_client) -> str:
+        """Wrapper to capture all user responses"""
+        # Get user response (existing logic)
+        user_response = await self._get_user_response(question, state, openai_client)
+        
+        # Capture the input
+        if self.input_tracker and user_response:
+            self.input_tracker.capture_user_input(
+                agent_name=self.name,
+                question=question,
+                response=user_response,
+                topic=topic,
+                context={
+                    "current_state": state.get("user_profile", {}),
+                    "conversation_id": state.get("current_conversation_id")
+                }
+            )
+        
+        return user_response
+```
+
+**3. Decision Rationale Generator** (`agents/decision_rationale_generator.py`):
+```python
+from typing import Dict, List
+import weave
+
+class DecisionRationaleGenerator:
+    """Generate the decision rationale section based on captured inputs"""
+    
+    def __init__(self):
+        self.name = "decision_rationale_generator"
+    
+    @weave.op()
+    async def generate_rationale_section(self, input_tracker: UserInputTracker, state: Dict, openai_client) -> str:
+        """Generate a user-friendly rationale section explaining all decisions"""
+        
+        # Get all captured inputs organized by topic
+        inputs_by_topic = self._organize_inputs_by_topic(input_tracker.all_inputs)
+        
+        # Create prompt with all user inputs and ask for rationale
+        prompt = f"""
+        Based on the following user inputs collected during the infrastructure planning interview, 
+        generate a comprehensive "Decision Rationale" section that explains why specific infrastructure 
+        choices were recommended.
+        
+        USER INPUTS BY TOPIC:
+        {self._format_inputs_for_prompt(inputs_by_topic)}
+        
+        For each major infrastructure decision in the document, explain:
+        1. What the user told us that led to this recommendation
+        2. Why this choice makes sense given their specific situation
+        3. How their constraints/requirements shaped the decision
+        
+        Make it conversational and reference specific things the user said.
+        Show them we listened and made decisions based on their unique needs.
+        """
+        
+        response = await openai_client.call_agent(
+            system_prompt="You are creating a transparency section that shows users exactly why infrastructure decisions were made based on their input.",
+            user_message=prompt
+        )
+        
+        return response
+    
+    def _organize_inputs_by_topic(self, inputs: List) -> Dict[str, List]:
+        """Group user inputs by topic for easier processing"""
+        by_topic = {}
+        for inp in inputs:
+            if inp.topic not in by_topic:
+                by_topic[inp.topic] = []
+            by_topic[inp.topic].append(inp)
+        return by_topic
+    
+    def _format_inputs_for_prompt(self, inputs_by_topic: Dict[str, List]) -> str:
+        """Format user inputs for the LLM prompt"""
+        formatted = []
+        for topic, inputs in inputs_by_topic.items():
+            formatted.append(f"\n{topic.upper()}:")
+            for inp in inputs:
+                formatted.append(f"- Q: {inp.question_asked}")
+                formatted.append(f"  A: {inp.user_response}")
+                formatted.append(f"  (Asked by: {inp.agent_name})")
+        return '\n'.join(formatted)
+```
+
+**4. Integration with Document Generation** (Update `agents/document_generator.py`):
+```python
+class DocumentGeneratorAgent:
+    async def generate_document(self, state: Dict, openai_client) -> str:
+        # Existing document generation...
+        
+        # Add decision rationale section
+        if state.get("input_tracker"):
+            rationale_generator = DecisionRationaleGenerator()
+            rationale_section = await rationale_generator.generate_rationale_section(
+                state["input_tracker"],
+                state,
+                openai_client
+            )
+            
+            # Add as a dedicated section after Executive Summary
+            document_sections.insert(1, {
+                "title": "Why We Made These Recommendations",
+                "content": rationale_section
+            })
+        
+        return self._compile_sections(document_sections)
+```
+
+**5. State Manager Integration** (Update `core/state_manager.py`):
+```python
+from core.user_input_tracker import UserInputTracker
+
+class StateManager:
+    def __init__(self):
+        # Existing initialization...
+        self.input_tracker = UserInputTracker()
+        self.state["input_tracker"] = self.input_tracker
+    
+    def get_input_tracker(self) -> UserInputTracker:
+        """Get the input tracker instance"""
+        return self.input_tracker
+```
+
+**6. Main Orchestration Updates** (Update `main.py`):
+```python
+async def run_interview():
+    state_manager = StateManager()
+    input_tracker = state_manager.get_input_tracker()
+    
+    # Inject input tracker into all agents
+    for agent_name, agent in agents.items():
+        if hasattr(agent, 'set_input_tracker'):
+            agent.set_input_tracker(input_tracker)
+    
+    # Rest of interview flow...
+    
+    # The document generator will automatically include the rationale section
+```
+
+**7. Example Decision Linking** (How agents can link inputs to decisions):
+```python
+# In any agent when making a decision
+if user_said_small_team and user_said_cost_conscious:
+    # Make decision
+    chosen_solution = "Railway for deployment"
+    
+    # Link the inputs that led to this decision
+    if self.input_tracker:
+        relevant_input_ids = [
+            inp.id for inp in self.input_tracker.all_inputs 
+            if "team size" in inp.question_asked or "budget" in inp.question_asked
+        ]
+        
+        self.input_tracker.link_inputs_to_decision(
+            decision_point="Deployment Platform Selection",
+            chosen_approach=chosen_solution,
+            relevant_input_ids=relevant_input_ids,
+            rationale="User indicated small team size and cost consciousness, making Railway's simplicity and pricing model ideal"
+        )
+```
+
+# Test Strategy:
+**SIMPLIFIED DECISION DOCUMENTATION TESTING STRATEGY**:
+
+**1. User Input Capture Testing**:
+- Verify every question asked by agents is captured with the user's response
+- Test that all agent types (Business, App, Tribal) properly capture inputs
+- Ensure input IDs are unique and timestamps are accurate
+- Validate conversation context is properly stored
+
+**2. Integration Testing**:
+- Test that input tracker is correctly injected into all agents
+- Verify inputs are captured throughout the entire interview process
+- Test that state manager maintains input tracker instance
+- Ensure no inputs are lost during agent transitions
+
+**3. Rationale Generation Testing**:
+- Test with various numbers of user inputs (few, many)
+- Verify generated rationale references specific user statements
+- Test that rationale explains decisions in user-friendly language
+- Validate the section appears in the correct position in the document
+
+**4. Decision Linking Testing**:
+- Test linking specific user inputs to infrastructure decisions
+- Verify multiple inputs can be linked to a single decision
+- Test that decisions without linked inputs are handled gracefully
+- Validate decision rationale clearly references user constraints
+
+**5. End-to-End Scenario Testing**:
+- Run complete interview with a solo founder choosing simple deployment
+- Verify rationale explains why complex solutions weren't recommended
+- Test with enterprise user and verify rationale explains robust choices
+- Validate final document includes clear "Why We Made These Recommendations" section
+
+**6. Transparency Validation**:
+- Test that users can trace every recommendation back to their input
+- Verify no infrastructure decision lacks explanation
+- Test that contradictory user inputs are acknowledged and resolved
+- Validate rationale addresses user's specific situation
+
+**7. Edge Case Testing**:
+- Test with minimal user inputs (very brief responses)
+- Test with contradictory user inputs
+- Verify system handles when user skips questions
+- Test with very detailed/lengthy user responses

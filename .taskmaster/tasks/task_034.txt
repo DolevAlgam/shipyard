@@ -1,0 +1,311 @@
+# Task ID: 34
+# Title: Implement Multi-Agent Document Generation System
+# Status: pending
+# Dependencies: 7, 2, 3, 22
+# Priority: high
+# Description: Replace the current single DocumentGeneratorAgent with a sophisticated multi-agent architecture that includes specialized section agents, validation agents, and consistency checkers to prevent issues like recommending team structures for solo founders.
+# Details:
+**MULTI-AGENT DOCUMENT GENERATION ARCHITECTURE**
+
+**1. Create Section-Specialized Agents** (`agents/document_sections/`):
+```python
+from abc import ABC, abstractmethod
+from typing import Dict, List, Optional
+import weave
+
+class BaseSectionAgent(ABC):
+    def __init__(self, section_name: str, dependencies: List[str] = None):
+        self.section_name = section_name
+        self.dependencies = dependencies or []
+    
+    @weave.op()
+    @abstractmethod
+    async def generate_section(self, state: Dict, context: Dict) -> Dict:
+        pass
+    
+    @weave.op()
+    async def validate_section(self, content: str, state: Dict) -> Dict:
+        return {"valid": True, "issues": [], "suggestions": []}
+
+class ExecutiveSummaryAgent(BaseSectionAgent):
+    def __init__(self):
+        super().__init__("Executive Summary")
+    
+    @weave.op()
+    async def generate_section(self, state: Dict, context: Dict) -> Dict:
+        # Extract key metrics, complexity, timeline
+        # Avoid technical jargon for executive audience
+        # Include cost estimates and ROI projections
+        pass
+
+class ArchitectureAgent(BaseSectionAgent):
+    def __init__(self):
+        super().__init__("Architecture Overview", ["Executive Summary"])
+    
+    @weave.op()
+    async def generate_section(self, state: Dict, context: Dict) -> Dict:
+        # Generate architecture diagrams (ASCII/Mermaid)
+        # Consider scalability requirements
+        # Match complexity to user expertise level
+        pass
+
+class SecurityAgent(BaseSectionAgent):
+    def __init__(self):
+        super().__init__("Security Measures")
+    
+    @weave.op()
+    async def generate_section(self, state: Dict, context: Dict) -> Dict:
+        # Compliance requirements (GDPR, SOC2, etc.)
+        # Security controls based on data sensitivity
+        # Authentication/authorization strategies
+        pass
+```
+
+**2. Implement Validation and Consistency Agents**:
+```python
+class ConsistencyValidatorAgent:
+    def __init__(self):
+        self.validation_rules = {
+            "team_structure": self._validate_team_structure,
+            "cost_alignment": self._validate_cost_alignment,
+            "technology_stack": self._validate_tech_stack_consistency,
+            "timeline_feasibility": self._validate_timeline_feasibility
+        }
+    
+    @weave.op()
+    async def validate_document(self, sections: Dict, state: Dict) -> Dict:
+        issues = []
+        for rule_name, validator in self.validation_rules.items():
+            rule_issues = await validator(sections, state)
+            issues.extend(rule_issues)
+        
+        return {
+            "valid": len(issues) == 0,
+            "issues": issues,
+            "severity_counts": self._categorize_issues(issues)
+        }
+    
+    async def _validate_team_structure(self, sections: Dict, state: Dict) -> List[Dict]:
+        issues = []
+        user_profile = state.get("state", {}).get("user_profile", {})
+        team_size = user_profile.get("team_size", 1)
+        
+        # Check for solo founder getting team recommendations
+        if team_size == 1:
+            for section_name, content in sections.items():
+                if self._mentions_team_roles(content):
+                    issues.append({
+                        "type": "team_structure_mismatch",
+                        "severity": "high",
+                        "section": section_name,
+                        "message": "Document recommends team roles for solo founder",
+                        "suggestion": "Focus on automation and managed services instead"
+                    })
+        return issues
+
+class CrossSectionValidatorAgent:
+    @weave.op()
+    async def validate_cross_references(self, sections: Dict) -> Dict:
+        # Validate that security measures align with architecture
+        # Ensure monitoring covers all mentioned services
+        # Check that disaster recovery matches infrastructure complexity
+        pass
+
+class CostValidatorAgent:
+    @weave.op()
+    async def validate_cost_estimates(self, sections: Dict, state: Dict) -> Dict:
+        # Validate cost estimates are realistic
+        # Check for hidden costs (data transfer, storage growth)
+        # Ensure costs align with stated budget constraints
+        pass
+```
+
+**3. Create Multi-Agent Document Orchestrator**:
+```python
+class MultiAgentDocumentGenerator:
+    def __init__(self):
+        self.section_agents = {
+            "executive_summary": ExecutiveSummaryAgent(),
+            "architecture": ArchitectureAgent(),
+            "compute": ComputeResourcesAgent(),
+            "networking": NetworkingAgent(),
+            "storage": StorageAgent(),
+            "security": SecurityAgent(),
+            "monitoring": MonitoringAgent(),
+            "disaster_recovery": DisasterRecoveryAgent(),
+            "cicd": CICDAgent(),
+            "cost_analysis": CostAnalysisAgent()
+        }
+        
+        self.validators = {
+            "consistency": ConsistencyValidatorAgent(),
+            "cross_section": CrossSectionValidatorAgent(),
+            "cost": CostValidatorAgent(),
+            "technical": TechnicalValidatorAgent()
+        }
+    
+    @weave.op()
+    async def generate_document(self, state: Dict, openai_client) -> Dict:
+        # 1. Determine section generation order based on dependencies
+        generation_order = self._resolve_dependencies()
+        
+        # 2. Generate sections in order
+        sections = {}
+        context = {"generated_sections": sections}
+        
+        for section_name in generation_order:
+            agent = self.section_agents[section_name]
+            section_result = await agent.generate_section(state, context)
+            sections[section_name] = section_result
+            
+            # Validate individual section
+            validation = await agent.validate_section(section_result["content"], state)
+            if not validation["valid"]:
+                # Regenerate with fixes
+                section_result = await self._fix_section(agent, section_result, validation, state)
+                sections[section_name] = section_result
+        
+        # 3. Run cross-section validation
+        validation_results = {}
+        for validator_name, validator in self.validators.items():
+            validation_results[validator_name] = await validator.validate_document(sections, state)
+        
+        # 4. Fix critical issues
+        if self._has_critical_issues(validation_results):
+            sections = await self._fix_critical_issues(sections, validation_results, state)
+        
+        return {
+            "sections": sections,
+            "validation_results": validation_results,
+            "document": self._compile_document(sections),
+            "metadata": {
+                "generation_timestamp": time.time(),
+                "agent_versions": self._get_agent_versions(),
+                "validation_passed": self._all_validations_passed(validation_results)
+            }
+        }
+```
+
+**4. Implement Context-Aware Section Generation**:
+```python
+class ContextAwareGenerator:
+    @weave.op()
+    async def adapt_content_to_user(self, base_content: str, user_profile: Dict) -> str:
+        expertise_level = user_profile.get("expertise_level", "beginner")
+        team_size = user_profile.get("team_size", 1)
+        budget_range = user_profile.get("budget_range", "startup")
+        
+        adaptations = []
+        
+        if expertise_level == "beginner":
+            adaptations.append("add_explanations")
+            adaptations.append("include_tutorials")
+        
+        if team_size == 1:
+            adaptations.append("emphasize_automation")
+            adaptations.append("recommend_managed_services")
+            adaptations.append("remove_team_coordination")
+        
+        if budget_range == "startup":
+            adaptations.append("prioritize_cost_optimization")
+            adaptations.append("suggest_free_tier_options")
+        
+        return await self._apply_adaptations(base_content, adaptations)
+```
+
+**5. Add Intelligent Section Dependencies**:
+```python
+class DependencyResolver:
+    def __init__(self):
+        self.dependencies = {
+            "architecture": [],
+            "security": ["architecture"],
+            "networking": ["architecture"],
+            "compute": ["architecture", "networking"],
+            "storage": ["architecture", "compute"],
+            "monitoring": ["compute", "networking", "storage"],
+            "disaster_recovery": ["architecture", "storage", "networking"],
+            "cicd": ["compute", "networking", "security"],
+            "cost_analysis": ["compute", "storage", "networking"],
+            "executive_summary": ["cost_analysis", "architecture"]
+        }
+    
+    def resolve_generation_order(self) -> List[str]:
+        # Topological sort of dependencies
+        return self._topological_sort(self.dependencies)
+```
+
+# Test Strategy:
+**COMPREHENSIVE MULTI-AGENT TESTING STRATEGY**:
+
+**1. Section Agent Testing**:
+- Test each section agent independently with various user profiles (solo founder, small team, enterprise)
+- Verify ExecutiveSummaryAgent doesn't include technical jargon for non-technical users
+- Test ArchitectureAgent generates appropriate complexity based on user expertise
+- Validate SecurityAgent recommendations match compliance requirements from user input
+
+**2. Validation Agent Testing**:
+- **Team Structure Validation**: Test with solo founder profile → should flag any team role recommendations
+- **Cost Alignment**: Test with $500/month budget → should flag enterprise-level solutions
+- **Technology Consistency**: Test microservices architecture → should flag if monitoring doesn't cover service mesh
+- **Timeline Feasibility**: Test 2-week timeline with complex architecture → should flag unrealistic expectations
+
+**3. Cross-Section Validation Testing**:
+- Generate document with conflicting sections (e.g., high-security requirements but basic monitoring)
+- Verify validator catches inconsistencies between architecture complexity and team size
+- Test cost estimates align with recommended infrastructure components
+
+**4. Integration Testing**:
+- **End-to-End Generation**: Test complete document generation with various user profiles
+- **Dependency Resolution**: Verify sections are generated in correct order (architecture before security)
+- **Context Propagation**: Test that earlier sections influence later section generation
+- **Validation Feedback Loop**: Test that critical validation failures trigger section regeneration
+
+**5. Context Adaptation Testing**:
+- Test solo founder profile → document should emphasize automation, managed services, no team coordination
+- Test enterprise profile → document should include team roles, compliance requirements, governance
+- Test beginner expertise → document should include explanations and tutorials
+- Test expert expertise → document should be concise and technical
+
+**6. Performance and Reliability Testing**:
+- Test with Weave observability to track agent performance and costs
+- Verify all agent calls are properly decorated and tracked
+- Test error handling when individual section generation fails
+- Validate graceful degradation when validation agents detect issues
+
+**7. Regression Testing**:
+- Create test cases for known issues (team recommendations for solo founders)
+- Test document quality metrics (readability, completeness, consistency)
+- Verify generated documents pass manual expert review
+
+# Subtasks:
+## 1. Create Base Section Agent Architecture [pending]
+### Dependencies: None
+### Description: Implement the foundational BaseSectionAgent abstract class and core section agent infrastructure including the abstract methods for section generation and validation, dependency management, and the basic agent registry system.
+### Details:
+Create agents/document_sections/__init__.py and base_section_agent.py with BaseSectionAgent abstract class containing section_name, dependencies list, generate_section() and validate_section() abstract methods. Include weave.op() decorators and proper typing. Set up the basic infrastructure for section agent registration and dependency tracking.
+
+## 2. Implement Core Section Agents [pending]
+### Dependencies: 34.1
+### Description: Create the specialized section agents including ExecutiveSummaryAgent, ArchitectureAgent, SecurityAgent, ComputeResourcesAgent, NetworkingAgent, StorageAgent, MonitoringAgent, DisasterRecoveryAgent, CICDAgent, and CostAnalysisAgent with their specific generation logic.
+### Details:
+Implement each section agent class inheriting from BaseSectionAgent with specialized generate_section() methods. ExecutiveSummaryAgent focuses on key metrics and ROI for executives, ArchitectureAgent generates diagrams and scalability considerations, SecurityAgent handles compliance and authentication strategies. Each agent should have appropriate dependencies defined and context-aware content generation.
+
+## 3. Implement Validation and Consistency Agents [pending]
+### Dependencies: 34.2
+### Description: Create the validation layer including ConsistencyValidatorAgent, CrossSectionValidatorAgent, CostValidatorAgent, and TechnicalValidatorAgent to ensure document quality and prevent issues like recommending team structures for solo founders.
+### Details:
+Implement ConsistencyValidatorAgent with validation rules for team_structure, cost_alignment, technology_stack, and timeline_feasibility. Create CrossSectionValidatorAgent for validating cross-references between sections. Implement CostValidatorAgent for realistic cost estimates and budget alignment. Include severity categorization and detailed issue reporting with suggestions for fixes.
+
+## 4. Create Multi-Agent Document Orchestrator [pending]
+### Dependencies: 34.3
+### Description: Implement the MultiAgentDocumentGenerator orchestrator that coordinates section generation, manages dependencies, runs validation, and handles issue resolution with intelligent retry mechanisms.
+### Details:
+Create MultiAgentDocumentGenerator class with section_agents and validators dictionaries. Implement dependency resolution using topological sort, sequential section generation with context passing, individual and cross-section validation, and critical issue fixing with regeneration capabilities. Include metadata tracking for generation timestamps, agent versions, and validation status.
+
+## 5. Implement Context-Aware Generation and Integration [pending]
+### Dependencies: 34.4
+### Description: Create the ContextAwareGenerator for user profile adaptation and integrate the multi-agent system with the existing application architecture, replacing the single DocumentGeneratorAgent.
+### Details:
+Implement ContextAwareGenerator with adapt_content_to_user() method that modifies content based on expertise_level, team_size, and budget_range. Create adaptation strategies for beginners (add explanations), solo founders (emphasize automation), and startups (cost optimization). Update main application flow to use MultiAgentDocumentGenerator instead of single DocumentGeneratorAgent. Ensure backward compatibility with existing state management and review loop.
+

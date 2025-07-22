@@ -1,0 +1,68 @@
+# Task ID: 9
+# Title: Create User Interface and Input Handling
+# Status: done
+# Dependencies: 8
+# Priority: medium
+# Description: Implement the console-based user interface for the interview process, including input validation, progress display, and user-friendly prompts
+# Details:
+Implement user interface in main.py:
+```python
+import asyncio
+import sys
+from typing import Optional
+
+class ConsoleInterface:
+    def __init__(self):
+        self.colors = {
+            'assistant': '\033[94m',  # Blue
+            'user': '\033[92m',       # Green
+            'system': '\033[93m',     # Yellow
+            'error': '\033[91m',      # Red
+            'reset': '\033[0m'
+        }
+    
+    async def get_user_input(self, prompt: str) -> str:
+        print(f"\n{self.colors['assistant']}Assistant: {prompt}{self.colors['reset']}")
+        print(f"{self.colors['user']}You: ", end="")
+        user_input = input()
+        print(self.colors['reset'], end="")
+        return user_input
+    
+    def show_progress(self, current_pillar: str, completed: int, total: int):
+        progress = "█" * completed + "░" * (total - completed)
+        print(f"\n{self.colors['system']}Progress: [{progress}] {completed}/{total}")
+        print(f"Current: {current_pillar}{self.colors['reset']}")
+    
+    def display_document_section(self, section: str, content: str):
+        print(f"\n{self.colors['system']}=== {section} ==={self.colors['reset']}")
+        print(content)
+    
+    async def confirm_action(self, message: str) -> bool:
+        response = await self.get_user_input(f"{message} (yes/no)")
+        return response.lower() in ['yes', 'y']
+
+async def main():
+    print("Welcome to Shipyard - Infrastructure Planning Assistant")
+    print("=" * 50)
+    
+    try:
+        from interview import run_interview
+        final_document = await run_interview()
+        
+        # Save document
+        with open('infrastructure_plan.md', 'w') as f:
+            f.write(final_document)
+        
+        print("\n✅ Infrastructure plan saved to infrastructure_plan.md")
+    
+    except KeyboardInterrupt:
+        print("\n\n⚠️  Interview cancelled by user")
+    except Exception as e:
+        print(f"\n❌ Error: {str(e)}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+# Test Strategy:
+Test user input handling, verify progress display updates correctly, test interrupt handling, and ensure document sections display properly with formatting.

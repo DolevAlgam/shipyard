@@ -1,0 +1,247 @@
+# Task ID: 21
+# Title: Implement UX Flow Management and User Progress Indication
+# Status: pending
+# Dependencies: 8, 9
+# Priority: high
+# Description: Create a comprehensive progress tracking and flow management system that provides clear visual indicators of interview progress, step transitions, time estimates, and section completion status to eliminate user confusion about the interview process.
+# Details:
+Implement a complete UX flow management system to address user confusion about interview progress:
+
+**1. Create Progress Tracking Component (core/progress_tracker.py):**
+```python
+from typing import Dict, List, Optional
+from datetime import datetime, timedelta
+
+class ProgressTracker:
+    def __init__(self):
+        self.steps = [
+            {"id": "profiler", "name": "User Profile", "estimated_time": 3},
+            {"id": "business", "name": "Business Requirements", "estimated_time": 10},
+            {"id": "app", "name": "Application Details", "estimated_time": 10},
+            {"id": "tribal", "name": "Organizational Context", "estimated_time": 8},
+            {"id": "best_practices", "name": "Best Practices Review", "estimated_time": 2},
+            {"id": "document", "name": "Document Generation", "estimated_time": 2},
+            {"id": "review", "name": "Review & Finalization", "estimated_time": 5}
+        ]
+        self.current_step = 0
+        self.step_start_times = {}
+        self.completed_steps = set()
+    
+    def get_total_steps(self) -> int:
+        return len(self.steps)
+    
+    def get_current_step_info(self) -> Dict:
+        if self.current_step < len(self.steps):
+            return self.steps[self.current_step]
+        return None
+    
+    def get_progress_percentage(self) -> float:
+        return (self.current_step / len(self.steps)) * 100
+    
+    def get_estimated_remaining_time(self) -> int:
+        remaining_steps = self.steps[self.current_step:]
+        return sum(step["estimated_time"] for step in remaining_steps)
+    
+    def mark_step_complete(self, step_id: str):
+        self.completed_steps.add(step_id)
+        if self.current_step < len(self.steps) - 1:
+            self.current_step += 1
+```
+
+**2. Create Visual Progress Display Component (ui/progress_display.py):**
+```python
+class ProgressDisplay:
+    def __init__(self):
+        self.bar_width = 50
+        self.colors = {
+            'complete': '\033[92m',    # Green
+            'current': '\033[93m',     # Yellow
+            'pending': '\033[90m',     # Gray
+            'reset': '\033[0m'
+        }
+    
+    def render_progress_bar(self, current: int, total: int) -> str:
+        percentage = (current / total) * 100
+        filled = int(self.bar_width * current // total)
+        bar = '█' * filled + '░' * (self.bar_width - filled)
+        return f"[{bar}] {percentage:.0f}% ({current}/{total} steps)"
+    
+    def render_step_indicator(self, steps: List[Dict], current_idx: int) -> str:
+        lines = []
+        for i, step in enumerate(steps):
+            if i < current_idx:
+                status = f"{self.colors['complete']}✓{self.colors['reset']}"
+            elif i == current_idx:
+                status = f"{self.colors['current']}▶{self.colors['reset']}"
+            else:
+                status = f"{self.colors['pending']}○{self.colors['reset']}"
+            
+            lines.append(f"  {status} {step['name']} (~{step['estimated_time']} min)")
+        
+        return "\n".join(lines)
+    
+    def render_transition_message(self, from_step: str, to_step: str) -> str:
+        return f"\n{self.colors['current']}{'='*60}{self.colors['reset']}\n" \
+               f"✅ Completed: {from_step}\n" \
+               f"➡️  Moving to: {to_step}\n" \
+               f"{self.colors['current']}{'='*60}{self.colors['reset']}\n"
+```
+
+**3. Integrate Progress Tracking into Main Interview Flow (main.py modifications):**
+```python
+async def run_interview():
+    state_manager = StateManager()
+    openai_client = OpenAIClient()
+    progress_tracker = ProgressTracker()
+    progress_display = ProgressDisplay()
+    
+    # Show initial overview
+    print("\n🚀 Infrastructure Requirements Interview")
+    print("="*60)
+    print("\nThis interview will guide you through 7 steps to gather")
+    print("comprehensive infrastructure requirements for your project.")
+    print(f"\nEstimated total time: ~{sum(s['estimated_time'] for s in progress_tracker.steps)} minutes")
+    print("\nInterview Flow:")
+    print(progress_display.render_step_indicator(progress_tracker.steps, 0))
+    print("\nYou can type 'progress' at any time to see your current status.")
+    print("="*60)
+    
+    input("\nPress Enter to begin...")
+    
+    # Modified agent execution with progress updates
+    for step_idx, step in enumerate(progress_tracker.steps):
+        # Show current progress
+        print(f"\n{progress_display.render_progress_bar(step_idx, len(progress_tracker.steps))}")
+        print(f"\n📍 Step {step_idx + 1}/{len(progress_tracker.steps)}: {step['name']}")
+        print(f"⏱️  Estimated time: {step['estimated_time']} minutes")
+        print(f"⏳ Remaining time: ~{progress_tracker.get_estimated_remaining_time()} minutes")
+        print("-"*60)
+        
+        # Execute the appropriate agent/step
+        if step['id'] == 'profiler':
+            await execute_profiler_agent(...)
+        elif step['id'] == 'business':
+            await execute_business_agent(...)
+        # ... other agents
+        
+        # Mark step complete and show transition
+        progress_tracker.mark_step_complete(step['id'])
+        
+        if step_idx < len(progress_tracker.steps) - 1:
+            next_step = progress_tracker.steps[step_idx + 1]
+            print(progress_display.render_transition_message(
+                step['name'], 
+                next_step['name']
+            ))
+            
+            # Brief pause for readability
+            await asyncio.sleep(2)
+```
+
+**4. Add Progress Command Handler (ui/command_handler.py):**
+```python
+class CommandHandler:
+    def __init__(self, progress_tracker, progress_display):
+        self.progress_tracker = progress_tracker
+        self.progress_display = progress_display
+        self.commands = {
+            'progress': self.show_progress,
+            'time': self.show_time_info,
+            'help': self.show_help
+        }
+    
+    async def handle_command(self, user_input: str) -> bool:
+        """Returns True if input was a command, False otherwise"""
+        if user_input.lower().strip() in self.commands:
+            await self.commands[user_input.lower().strip()]()
+            return True
+        return False
+    
+    async def show_progress(self):
+        current = self.progress_tracker.current_step
+        total = self.progress_tracker.get_total_steps()
+        
+        print("\n📊 Current Progress:")
+        print(self.progress_display.render_progress_bar(current, total))
+        print("\nStep Status:")
+        print(self.progress_display.render_step_indicator(
+            self.progress_tracker.steps, 
+            current
+        ))
+```
+
+**5. Add Section Completion Indicators:**
+```python
+def show_pillar_completion(pillar_name: str, key_points: List[str]):
+    """Display clear completion message for each major section"""
+    print(f"\n{'='*60}")
+    print(f"✅ {pillar_name} COMPLETE!")
+    print(f"{'='*60}")
+    print("\n📋 Key Information Gathered:")
+    for point in key_points[:5]:  # Show top 5 key points
+        print(f"  • {point}")
+    print(f"\n💾 All responses saved and will be incorporated into your")
+    print(f"   infrastructure document.")
+    print(f"{'='*60}\n")
+```
+
+**6. Modify Agent Base Class to Support Progress Updates:**
+```python
+class BaseAgent(ABC):
+    async def run(self, state: Dict, openai_client, progress_display=None):
+        topic_count = len(self.topics)
+        
+        for idx, topic in enumerate(self.topics):
+            if progress_display:
+                # Show mini-progress within the agent
+                print(f"\n  [{idx+1}/{topic_count}] {topic.replace('_', ' ').title()}")
+            
+            result = await self.process_topic(topic, state, openai_client)
+            # ... rest of implementation
+```
+
+# Test Strategy:
+**1. Progress Tracking Component Testing:**
+- Test initialization of progress tracker with correct step definitions
+- Verify step progression logic (current_step increments correctly)
+- Test progress percentage calculations (0%, 50%, 100% scenarios)
+- Verify time estimation calculations for remaining steps
+- Test edge cases (completing last step, invalid step IDs)
+
+**2. Visual Display Testing:**
+- Test progress bar rendering at various completion levels (0%, 25%, 50%, 75%, 100%)
+- Verify step indicator shows correct symbols (✓ for complete, ▶ for current, ○ for pending)
+- Test color codes render correctly in different terminal environments
+- Verify transition messages format properly with correct step names
+
+**3. Integration Testing:**
+- Run full interview flow and verify progress updates at each step
+- Test that initial overview displays all 7 steps with time estimates
+- Verify transition messages appear between each major section
+- Test that progress bar updates correctly after each step completion
+- Ensure total time estimate matches sum of individual step estimates
+
+**4. User Command Testing:**
+- Test 'progress' command displays current status at any point
+- Verify command handler doesn't interfere with normal interview responses
+- Test that progress display is non-blocking and doesn't interrupt flow
+- Verify help command shows available commands
+
+**5. Section Completion Testing:**
+- Test pillar completion messages show after each major agent completes
+- Verify key points are extracted and displayed (max 5)
+- Test completion indicators for all pillars (Business, App, Tribal)
+- Ensure completion messages are visually distinct and clear
+
+**6. User Experience Testing:**
+- Conduct user testing to verify confusion about flow is eliminated
+- Test with users unfamiliar with the system to ensure clarity
+- Verify time estimates are reasonably accurate (within 20% of actual)
+- Test that users understand when sections are complete
+- Ensure users can track their progress throughout the interview
+
+**7. Error Handling:**
+- Test progress tracking continues correctly if an agent fails
+- Verify progress display handles terminal resize gracefully
+- Test behavior when user interrupts during transitions
+- Ensure progress state is maintained if interview is paused/resumed

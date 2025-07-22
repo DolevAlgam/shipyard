@@ -1,0 +1,404 @@
+# Task ID: 37
+# Title: Implement Real-time Multi-Agent Validation Feedback Loop
+# Status: pending
+# Dependencies: 34, 35, 36, 19, 22
+# Priority: high
+# Description: Create a sophisticated system where validation agents continuously monitor document generation in real-time, flag issues as they occur, and trigger immediate section regeneration with corrective prompts during the generation process.
+# Details:
+**REAL-TIME MULTI-AGENT VALIDATION FEEDBACK LOOP SYSTEM**
+
+**1. Create Real-time Validation Orchestrator** (`agents/validators/realtime_validation_orchestrator.py`):
+```python
+from typing import Dict, List, Optional, Tuple, AsyncIterator
+from dataclasses import dataclass
+from enum import Enum
+import asyncio
+import weave
+from datetime import datetime
+
+class ValidationSeverity(Enum):
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+@dataclass
+class ValidationIssue:
+    severity: ValidationSeverity
+    section: str
+    issue_type: str
+    description: str
+    suggested_correction: str
+    timestamp: datetime
+    validator_name: str
+
+class RealtimeValidationOrchestrator:
+    def __init__(self):
+        self.active_validators = []
+        self.issue_queue = asyncio.Queue()
+        self.correction_history = []
+        self.max_regeneration_attempts = 3
+        
+    @weave.op()
+    async def register_validators(self, validators: List['BaseValidator']):
+        """Register all validation agents for real-time monitoring"""
+        self.active_validators = validators
+        
+    @weave.op()
+    async def monitor_generation_stream(self, 
+                                      generation_stream: AsyncIterator[str],
+                                      state: Dict,
+                                      section_name: str) -> AsyncIterator[str]:
+        """Monitor document generation in real-time and trigger corrections"""
+        buffer = ""
+        regeneration_count = 0
+        
+        async for chunk in generation_stream:
+            buffer += chunk
+            
+            # Run validators on current buffer
+            validation_tasks = [
+                validator.validate_chunk(buffer, section_name, state)
+                for validator in self.active_validators
+            ]
+            
+            validation_results = await asyncio.gather(*validation_tasks)
+            
+            # Process validation results
+            critical_issues = []
+            for issues in validation_results:
+                for issue in issues:
+                    await self.issue_queue.put(issue)
+                    if issue.severity == ValidationSeverity.CRITICAL:
+                        critical_issues.append(issue)
+            
+            # If critical issues found, interrupt generation
+            if critical_issues and regeneration_count < self.max_regeneration_attempts:
+                corrected_content = await self.trigger_regeneration(
+                    buffer, section_name, critical_issues, state
+                )
+                regeneration_count += 1
+                # Replace buffer with corrected content
+                buffer = corrected_content
+                # Yield the corrected content
+                yield corrected_content
+            else:
+                # Yield the chunk if no critical issues
+                yield chunk
+```
+
+**2. Create Base Validator Class** (`agents/validators/base_validator.py`):
+```python
+from abc import ABC, abstractmethod
+from typing import List, Dict, Optional
+import weave
+
+class BaseValidator(ABC):
+    def __init__(self, name: str, validation_focus: List[str]):
+        self.name = name
+        self.validation_focus = validation_focus
+        
+    @weave.op()
+    @abstractmethod
+    async def validate_chunk(self, 
+                           content: str, 
+                           section: str, 
+                           state: Dict) -> List[ValidationIssue]:
+        """Validate a chunk of generated content in real-time"""
+        pass
+        
+    @weave.op()
+    async def generate_correction_prompt(self, 
+                                       issue: ValidationIssue,
+                                       original_content: str) -> str:
+        """Generate a corrective prompt for the issue"""
+        return f"""
+        The following issue was detected in the {issue.section} section:
+        
+        Issue Type: {issue.issue_type}
+        Description: {issue.description}
+        
+        Original Content:
+        {original_content}
+        
+        Please regenerate this section with the following correction:
+        {issue.suggested_correction}
+        
+        Ensure the regenerated content addresses the issue while maintaining consistency.
+        """
+```
+
+**3. Implement Specialized Validators** (`agents/validators/`):
+
+```python
+# profile_consistency_validator.py
+class ProfileConsistencyValidator(BaseValidator):
+    def __init__(self):
+        super().__init__("profile_consistency", ["team_size", "scale", "expertise"])
+        
+    @weave.op()
+    async def validate_chunk(self, content: str, section: str, state: Dict) -> List[ValidationIssue]:
+        issues = []
+        user_profile = state.get("user_profile", {})
+        
+        # Check for team references in solo founder context
+        if user_profile.get("team_size") == "solo":
+            team_indicators = ["team lead", "department", "teams", "staff", "employees"]
+            for indicator in team_indicators:
+                if indicator.lower() in content.lower():
+                    issues.append(ValidationIssue(
+                        severity=ValidationSeverity.CRITICAL,
+                        section=section,
+                        issue_type="inappropriate_team_reference",
+                        description=f"References to '{indicator}' found for solo founder",
+                        suggested_correction="Remove team references and adjust for single person operation",
+                        timestamp=datetime.now(),
+                        validator_name=self.name
+                    ))
+        
+        return issues
+
+# scale_appropriateness_validator.py
+class ScaleAppropriatenessValidator(BaseValidator):
+    def __init__(self):
+        super().__init__("scale_appropriateness", ["infrastructure_scale", "complexity"])
+        
+    @weave.op()
+    async def validate_chunk(self, content: str, section: str, state: Dict) -> List[ValidationIssue]:
+        issues = []
+        scale_category = state.get("scale_category", "small")
+        
+        # Check for over-engineering in MVP context
+        if scale_category == "mvp":
+            overengineering_indicators = [
+                "kubernetes", "microservices", "multi-region", 
+                "enterprise-grade", "high availability cluster"
+            ]
+            for indicator in overengineering_indicators:
+                if indicator.lower() in content.lower():
+                    issues.append(ValidationIssue(
+                        severity=ValidationSeverity.ERROR,
+                        section=section,
+                        issue_type="overengineering_for_scale",
+                        description=f"Complex infrastructure '{indicator}' suggested for MVP",
+                        suggested_correction="Suggest simpler alternatives appropriate for MVP scale",
+                        timestamp=datetime.now(),
+                        validator_name=self.name
+                    ))
+        
+        return issues
+
+# technical_accuracy_validator.py
+class TechnicalAccuracyValidator(BaseValidator):
+    def __init__(self):
+        super().__init__("technical_accuracy", ["configuration", "compatibility"])
+        
+    @weave.op()
+    async def validate_chunk(self, content: str, section: str, state: Dict) -> List[ValidationIssue]:
+        issues = []
+        
+        # Check for incompatible technology combinations
+        if "serverless" in content.lower() and "persistent connections" in content.lower():
+            issues.append(ValidationIssue(
+                severity=ValidationSeverity.ERROR,
+                section=section,
+                issue_type="technical_incompatibility",
+                description="Serverless functions incompatible with persistent connections",
+                suggested_correction="Either remove serverless or suggest WebSockets with appropriate service",
+                timestamp=datetime.now(),
+                validator_name=self.name
+            ))
+        
+        return issues
+```
+
+**4. Create Feedback Loop Manager** (`agents/validators/feedback_loop_manager.py`):
+```python
+class FeedbackLoopManager:
+    def __init__(self, openai_client):
+        self.openai_client = openai_client
+        self.correction_cache = {}
+        
+    @weave.op()
+    async def process_validation_feedback(self,
+                                        issues: List[ValidationIssue],
+                                        original_content: str,
+                                        section: str,
+                                        state: Dict) -> str:
+        """Process validation issues and generate corrected content"""
+        
+        # Group issues by severity
+        critical_issues = [i for i in issues if i.severity == ValidationSeverity.CRITICAL]
+        error_issues = [i for i in issues if i.severity == ValidationSeverity.ERROR]
+        
+        # Generate correction prompt
+        correction_prompt = self._build_correction_prompt(
+            critical_issues + error_issues,
+            original_content,
+            section,
+            state
+        )
+        
+        # Call OpenAI with correction prompt
+        corrected_content = await self.openai_client.call_agent(
+            system_prompt=f"You are regenerating the {section} section with corrections.",
+            user_message=correction_prompt,
+            model="gpt-4o"  # Use fast model for corrections
+        )
+        
+        # Cache the correction for learning
+        self._cache_correction(original_content, corrected_content, issues)
+        
+        return corrected_content
+        
+    def _build_correction_prompt(self, 
+                                issues: List[ValidationIssue],
+                                original: str,
+                                section: str,
+                                state: Dict) -> str:
+        """Build a comprehensive correction prompt"""
+        user_context = f"""
+        User Profile:
+        - Team Size: {state.get('user_profile', {}).get('team_size', 'unknown')}
+        - Scale: {state.get('scale_category', 'unknown')}
+        - Expertise: {state.get('user_profile', {}).get('expertise_level', 'unknown')}
+        """
+        
+        issues_summary = "\n".join([
+            f"- {issue.issue_type}: {issue.description} (Fix: {issue.suggested_correction})"
+            for issue in issues
+        ])
+        
+        return f"""
+        {user_context}
+        
+        The following issues were found in the {section} section:
+        {issues_summary}
+        
+        Original Content:
+        {original}
+        
+        Please regenerate this section addressing ALL the issues listed above.
+        Ensure the content is appropriate for the user's profile and scale.
+        """
+```
+
+**5. Integration with Document Generation** (`agents/document_generator_v2.py`):
+```python
+class EnhancedDocumentGenerator:
+    def __init__(self, validation_orchestrator: RealtimeValidationOrchestrator):
+        self.validation_orchestrator = validation_orchestrator
+        self.section_agents = {}  # Existing section agents
+        
+    @weave.op()
+    async def generate_section_with_validation(self,
+                                              section_name: str,
+                                              state: Dict,
+                                              openai_client) -> str:
+        """Generate a section with real-time validation"""
+        
+        # Get the appropriate section agent
+        section_agent = self.section_agents[section_name]
+        
+        # Create async generator for section content
+        async def content_generator():
+            content = await section_agent.generate_section(state, openai_client)
+            # Simulate streaming by yielding in chunks
+            chunk_size = 100
+            for i in range(0, len(content), chunk_size):
+                yield content[i:i+chunk_size]
+                await asyncio.sleep(0.1)  # Simulate streaming delay
+        
+        # Monitor the generation with validation
+        validated_content = ""
+        async for chunk in self.validation_orchestrator.monitor_generation_stream(
+            content_generator(),
+            state,
+            section_name
+        ):
+            validated_content += chunk
+            
+        return validated_content
+```
+
+**6. Create Validation Dashboard** (`utils/validation_dashboard.py`):
+```python
+class ValidationDashboard:
+    def __init__(self):
+        self.issues_log = []
+        self.corrections_made = 0
+        self.validation_metrics = {}
+        
+    @weave.op()
+    async def log_validation_event(self, event: Dict):
+        """Log validation events for monitoring"""
+        self.issues_log.append({
+            "timestamp": datetime.now(),
+            "event": event
+        })
+        
+    def generate_validation_report(self) -> str:
+        """Generate a summary report of validation activities"""
+        report = f"""
+        VALIDATION SUMMARY REPORT
+        ========================
+        Total Issues Detected: {len(self.issues_log)}
+        Corrections Made: {self.corrections_made}
+        
+        Issues by Severity:
+        - Critical: {sum(1 for i in self.issues_log if i.get('severity') == 'critical')}
+        - Error: {sum(1 for i in self.issues_log if i.get('severity') == 'error')}
+        - Warning: {sum(1 for i in self.issues_log if i.get('severity') == 'warning')}
+        
+        Most Common Issues:
+        {self._get_common_issues()}
+        """
+        return report
+```
+
+# Test Strategy:
+**COMPREHENSIVE REAL-TIME VALIDATION TESTING STRATEGY**:
+
+**1. Streaming Validation Testing**:
+- Create mock document generation streams with known issues (team references for solo founders, over-engineered solutions for MVPs)
+- Verify validators detect issues in real-time as content is being generated
+- Test that critical issues trigger immediate regeneration
+- Ensure non-critical issues are logged but don't interrupt generation
+- Verify maximum regeneration attempts are enforced (3 attempts)
+
+**2. Validator Integration Testing**:
+- Test ProfileConsistencyValidator with solo founder profile generating team-oriented content
+- Verify it catches phrases like "assign to your DevOps team" and triggers correction
+- Test ScaleAppropriatenessValidator with MVP profile suggesting Kubernetes
+- Ensure it flags over-engineering and suggests simpler alternatives
+- Test TechnicalAccuracyValidator with incompatible technology combinations
+
+**3. Correction Prompt Testing**:
+- Verify correction prompts include all relevant user context (team size, scale, expertise)
+- Test that multiple issues are consolidated into a single correction prompt
+- Ensure corrected content addresses all flagged issues
+- Verify correction history is maintained for learning
+
+**4. Performance Testing**:
+- Measure latency impact of real-time validation on document generation
+- Test with multiple validators running concurrently
+- Verify async operations don't block the generation stream
+- Ensure system handles validator failures gracefully
+
+**5. Edge Case Testing**:
+- Test with rapidly changing content that might trigger multiple validations
+- Verify handling of conflicting validation results from different validators
+- Test regeneration loops (content that keeps failing validation)
+- Ensure system handles empty or malformed content gracefully
+
+**6. Integration Testing**:
+- Test full document generation with validation enabled
+- Verify all sections go through validation pipeline
+- Test interaction with existing document generation agents
+- Ensure validation results are properly logged in Weave
+
+**7. Validation Report Testing**:
+- Generate validation reports after document generation
+- Verify metrics are accurately tracked
+- Test dashboard functionality with various issue scenarios
+- Ensure reports provide actionable insights

@@ -1,0 +1,63 @@
+# Task ID: 8
+# Title: Build Main Interview Orchestration Loop
+# Status: done
+# Dependencies: 5, 6, 7
+# Priority: high
+# Description: Implement the main flow that orchestrates all agents in sequence, manages state transitions, and handles the interview process from start to finish
+# Details:
+Implement main interview flow:
+```python
+import asyncio
+from core.state_manager import StateManager
+from core.openai_client import OpenAIClient
+from agents import *
+
+async def run_interview():
+    state_manager = StateManager()
+    openai_client = OpenAIClient()
+    
+    # Initialize agents
+    agents = {
+        "profiler": ProfilerAgent(),
+        "business": BusinessAgent(),
+        "app": AppAgent(),
+        "tribal": TribalAgent(),
+        "best_practices": BestPracticesAgent()
+    }
+    
+    # Run each pillar in sequence
+    for pillar_name in ["profiler", "business", "app", "tribal"]:
+        state = await run_pillar(
+            pillar_name, 
+            agents[pillar_name], 
+            state_manager, 
+            openai_client
+        )
+    
+    # Apply best practices
+    state = await agents["best_practices"].fill_gaps(
+        state_manager.state, 
+        openai_client
+    )
+    
+    # Generate document
+    doc_generator = DocumentGeneratorAgent()
+    document = await doc_generator.generate_document(
+        state_manager.state, 
+        openai_client
+    )
+    
+    # Review loop
+    final_doc = await review_loop(document, state_manager, openai_client)
+    
+    return final_doc
+
+async def run_pillar(pillar_name, agent, state_manager, openai_client):
+    # Implement pillar execution logic with follow-up handling
+    # Update chat history and state
+    # Call summarizer after completion
+    pass
+```
+
+# Test Strategy:
+Test complete interview flow with mock user inputs, verify state transitions between agents, and ensure proper error handling throughout the process.

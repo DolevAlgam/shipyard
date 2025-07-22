@@ -1,0 +1,151 @@
+# Task ID: 14
+# Title: Comprehensive System Testing and Validation
+# Status: pending
+# Dependencies: 1, 2, 3, 5, 6, 8, 9, 10, 11, 12, 13, 16, 20, 21, 22
+# Priority: high
+# Description: Create comprehensive test scenarios to validate the entire interview flow, context retention, and document generation with different user personas, expertise levels, and project types. Focus on reproducing and validating fixes for identified critical bugs including context loss, generic document generation, and summary quality issues. Critical for validating all bug fixes implemented in Tasks #11, #12, #13, #16, #20, #21, #22.
+# Details:
+Implement comprehensive end-to-end testing framework with specific focus on critical bug reproduction and validation of all implemented fixes:
+
+1. **Critical Bug Reproduction Tests**:
+   - Create `tests/integration/test_critical_bugs.py` with specific test cases:
+     - Context Loss Bug: User provides "2GB videos, 10 minutes, 15 properties" in profiler → business agent should reference these facts, not re-ask
+     - Generic Document Bug: User says "Railway backend, Vercel frontend" → document should NOT include AWS VPC/load balancer recommendations
+     - Summary Quality Bug: User says "under $200/month budget" → summary should capture the amount, not just "budget mentioned"
+
+2. **Bug Fix Validation Tests** (Tasks #11, #12, #13, #16, #20, #21, #22):
+   - Task #11 fixes: Validate SummarizerAgent integration and proper summary extraction
+   - Task #12 fixes: Test context passing improvements and structured data flow
+   - Task #13 fixes: Verify document generation accuracy and platform-specific recommendations
+   - Task #16 fixes: Test ProfilerAgent expertise assessment improvements
+   - Task #20 fixes: Validate BusinessAgent context retention and adaptive questioning
+   - Task #21 fixes: Test AppAgent technology stack building and context awareness
+   - Task #22 fixes: Verify DocumentGeneratorAgent platform-specific accuracy
+
+3. **Agent-Specific Test Scenarios**:
+   - ProfilerAgent: Test that observed expertise matches stated expertise assessment
+   - BusinessAgent: Test adaptive questioning based on expertise level (novice vs advanced users)
+   - AppAgent: Test that it builds on technology stack already mentioned in profiler
+   - DocumentGeneratorAgent: Test platform-specific accuracy (Railway users get Railway-specific recommendations)
+
+4. **Data Flow Validation Tests**:
+   - SummarizerAgent Integration: Verify all agents call `SummarizerAgent.summarize_pillar()` instead of manual `_extract_summary()`
+   - Context Passing: Test that `build_system_prompt_context()` provides structured data, not JSON dumps
+   - Value Preservation: Test specific values ("1000 users", "PostgreSQL", "$50k") flow through entire system intact
+
+5. **Platform-Specific Test Cases**:
+   - Railway + Vercel User: Should get Railway-specific deployment, Vercel edge functions, NOT AWS services
+   - AWS User: Should get VPC, EC2, load balancer recommendations appropriate for their scale
+   - Mixed Platform User: Should get hybrid recommendations matching their actual setup
+
+6. **Test Scenario Framework**:
+   - Create `tests/integration/test_scenarios.py` with predefined user personas:
+     - Novice developer (minimal cloud experience)
+     - Experienced developer (specific technology preferences)
+     - Enterprise architect (compliance and security focused)
+     - Startup founder (budget-conscious, rapid deployment)
+   - Define project type variations: web apps, APIs, mobile backends, data processing, e-commerce
+   - Create expertise level test cases: beginner, intermediate, advanced
+
+7. **Edge Case and Error Handling**:
+   - Unclear User Responses: Test follow-up logic for ambiguous answers
+   - Contradictory Information: Test handling when user provides conflicting details across pillars
+   - API Failures: Test graceful degradation when OpenAI API calls fail
+   - Empty Summaries: Test behavior when summarization produces minimal content
+
+8. **End-to-End Workflow Tests**:
+   - Complete Interview Flow: Test entire process with different user personas
+   - Document Review Loop: Test feedback interpretation and document revision accuracy
+   - State Persistence: Test that all information is properly maintained throughout the interview
+
+9. **Regression Testing Suite**:
+   - Create baseline tests to ensure bug fixes don't introduce new issues
+   - Test interactions between different bug fixes
+   - Validate that all improvements work together harmoniously
+
+# Test Strategy:
+1. **Critical Bug Validation**: Execute specific test cases for each identified bug to ensure fixes work correctly. Verify context loss prevention, platform-specific document generation, and accurate summary extraction.
+
+2. **Bug Fix Verification**: Create targeted tests for each implemented fix (Tasks #11, #12, #13, #16, #20, #21, #22) to ensure they work as intended and don't conflict with each other.
+
+3. **Automated Test Suite Execution**: Run all test scenarios using pytest with detailed logging to capture conversation flows, state transitions, and generated outputs. Compare actual vs expected behavior for each persona and project type.
+
+4. **Context Retention Validation**: Execute test conversations containing specific data points (user counts, budgets, timelines, technology choices) and verify that all information appears correctly in final documents without loss or misinterpretation.
+
+5. **Platform-Specific Testing**: Test each supported platform (Railway, AWS, Vercel, etc.) with identical user inputs to ensure platform-specific recommendations are accurate and mutually exclusive. Validate that mixed platform setups receive appropriate hybrid recommendations.
+
+6. **Agent Integration Testing**: Verify that all agents properly use SummarizerAgent.summarize_pillar() and that context passing uses structured data rather than JSON dumps.
+
+7. **Value Preservation Testing**: Track specific numerical values, technology choices, and constraints through the entire interview flow to ensure no data loss or corruption occurs.
+
+8. **Regression Testing**: Maintain a baseline of expected outputs for each test scenario and automatically detect when changes introduce regressions in conversation quality or document accuracy. Pay special attention to interactions between different bug fixes.
+
+9. **Manual Validation**: Conduct human review of generated documents for coherence, technical accuracy, and alignment with stated user requirements.
+
+10. **Performance Benchmarking**: Measure and document response times, memory usage, and API call efficiency across all test scenarios to establish performance baselines.
+
+11. **Bug Documentation**: Create detailed bug reports with reproduction steps, expected vs actual behavior, conversation logs, and impact assessment for any identified issues.
+
+12. **Fix Validation Reporting**: Generate comprehensive reports showing which bug fixes are working correctly and which may need additional attention.
+
+# Subtasks:
+## 1. Create Critical Bug Reproduction Test Suite [pending]
+### Dependencies: None
+### Description: Implement specific test cases to reproduce and validate fixes for the three critical bugs: context loss, generic document generation, and summary quality issues
+### Details:
+
+
+## 2. Implement Agent-Specific Test Scenarios [pending]
+### Dependencies: None
+### Description: Create targeted tests for each agent to validate their specific functionality: ProfilerAgent expertise assessment, BusinessAgent adaptive questioning, AppAgent technology stack building, and DocumentGeneratorAgent platform-specific accuracy
+### Details:
+
+
+## 3. Build Data Flow Validation Framework [pending]
+### Dependencies: None
+### Description: Create tests to verify SummarizerAgent integration, structured context passing, and value preservation throughout the system
+### Details:
+
+
+## 4. Develop Platform-Specific Test Cases [pending]
+### Dependencies: None
+### Description: Implement comprehensive tests for Railway, AWS, Vercel, and mixed platform scenarios to ensure accurate platform-specific recommendations
+### Details:
+
+
+## 5. Create User Persona Test Framework [pending]
+### Dependencies: None
+### Description: Implement test scenarios for different user personas (novice, experienced, enterprise architect, startup founder) with various project types and expertise levels
+### Details:
+
+
+## 6. Implement Edge Case and Error Handling Tests [pending]
+### Dependencies: None
+### Description: Create tests for unclear responses, contradictory information, API failures, and empty summaries to ensure robust error handling
+### Details:
+
+
+## 7. Build End-to-End Workflow Test Suite [pending]
+### Dependencies: None
+### Description: Implement complete interview flow tests, document review loop validation, and state persistence verification
+### Details:
+
+
+## 8. Create Test Automation and Reporting Infrastructure [pending]
+### Dependencies: None
+### Description: Set up pytest configuration, logging framework, and automated test reporting to support comprehensive test execution and analysis
+### Details:
+
+
+## 9. Implement Bug Fix Validation Test Suite [pending]
+### Dependencies: None
+### Description: Create specific test cases to validate all bug fixes implemented in Tasks #11, #12, #13, #16, #20, #21, #22, ensuring they work correctly and don't introduce regressions
+### Details:
+
+
+## 10. Build Regression Testing Framework [pending]
+### Dependencies: None
+### Description: Establish baseline tests and automated regression detection to ensure bug fixes don't conflict with each other or introduce new issues
+### Details:
+
+

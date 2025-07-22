@@ -1,0 +1,126 @@
+# Task ID: 15
+# Title: Improve Agent Question Intelligence and Avoid Repetition
+# Status: pending
+# Dependencies: 2, 4, 5, 11, 12, 16
+# Priority: medium
+# Description: Enhance prompt engineering for each agent to better utilize context and avoid asking for information already provided, implementing logic to skip topics already covered and improve follow-up question quality.
+# Details:
+**UPDATED ROOT CAUSE**: Question repetition is a direct symptom of the keyword-based architecture violation identified in Task #16. Agents cannot intelligently avoid repetition because keyword-based logic cannot understand semantic relationships between previously provided information.
+
+**CRITICAL DISCOVERY**: The repetitive questioning and poor intelligence is directly caused by:
+
+1. **Follow-Up Detection Uses Keywords, Not Context**:
+   - `utils/helpers.py` `needs_follow_up()` checks for hardcoded phrases like "what do you mean", "i don't understand"
+   - Completely ignores whether information was already provided elsewhere
+   - Example: User says "2GB videos, 10 minutes" in profiler → business agent still asks about storage because keyword logic doesn't understand this relates to storage needs
+
+2. **Skip Detection Ignores Semantic Context**:
+   - `is_skip_response()` only checks for literal phrases like "skip", "i don't know"
+   - Can't understand when user provided relevant information in different words
+   - Example: User says "We mentioned this earlier" → keyword logic doesn't recognize this as skip intent
+
+3. **Agents Can't Parse Existing Information**:
+   - All `_extract_summary()` methods store full messages instead of extracting semantic meaning
+   - Agents receive garbled context they can't intelligently parse
+   - Example: Business summary contains "user said: I have 15 properties..." instead of structured "property_count: 15"
+
+**IMPLEMENTATION PLAN** (Post Task #16 Completion):
+
+1. **Replace Keyword-Based Follow-Up Detection**:
+   - Remove hardcoded phrase matching in `utils/helpers.py`
+   - Implement LLM-based understanding of response completeness:
+     ```python
+     def needs_follow_up_llm(response: str, question: str, existing_context: str) -> bool:
+         prompt = f"""
+         Question: {question}
+         User Response: {response}
+         Existing Context: {existing_context}
+         
+         Does this response fully answer the question considering the existing context?
+         Return: true/false
+         """
+     ```
+
+2. **Implement Semantic Skip Detection**:
+   - Replace keyword matching with LLM-based intent recognition:
+     ```python
+     def is_skip_response_llm(response: str) -> bool:
+         prompt = f"""
+         User Response: {response}
+         
+         Is the user indicating they want to skip this question or that the information was already provided?
+         Consider phrases like "already mentioned", "covered this", "skip", etc.
+         Return: true/false
+         """
+     ```
+
+3. **Enhanced Context-Aware Prompt Engineering**:
+   - Update `core/prompts.py` to include semantic context analysis:
+     - Add "CRITICAL: Analyze the COMPLETED PILLARS section semantically to understand what information is already available"
+     - Include "Do NOT ask for information that can be inferred from previous responses"
+     - Add "Build upon existing information with deeper, more specific questions"
+
+4. **Implement Information Gap Analysis**:
+   - Add LLM-based gap analysis to agent prompts:
+     ```python
+     def _generate_gap_analysis_prompt(self, topic: str, existing_context: str) -> str:
+         return f"""
+         EXISTING CONTEXT: {existing_context}
+         
+         Analyze what specific information is still needed for {topic}.
+         Consider semantic relationships - if user mentioned "2GB videos", don't ask about file sizes.
+         Generate ONE specific question that fills the biggest information gap.
+         """
+     ```
+
+5. **Cross-Agent Semantic Information Mapping**:
+   - Implement LLM-based logic to understand relationships across pillars:
+     ```python
+     def _map_cross_pillar_info_llm(self, state: Dict) -> Dict:
+         prompt = f"""
+         Previous Pillar Summaries: {state.get('summaries', {})}
+         
+         Extract and map related information:
+         - Business metrics (user counts, revenue) → Infrastructure needs
+         - Technical specs (file sizes, formats) → Storage/bandwidth requirements
+         - Constraints (budget, timeline) → Technology choices
+         
+         Return structured mapping of available information.
+         """
+     ```
+
+6. **Intelligent Question Generation**:
+   - Implement context-aware question generation using LLM understanding:
+     ```python
+     def _generate_intelligent_question(self, topic: str, context: Dict) -> str:
+         prompt = f"""
+         Topic: {topic}
+         Available Context: {context}
+         
+         Generate an intelligent question that:
+         1. Builds upon existing information
+         2. Avoids repeating what's already known
+         3. Seeks specific details needed for {topic}
+         
+         Example: If user mentioned "15 properties", ask about occupancy rates, not property count.
+         """
+     ```
+
+# Test Strategy:
+**PREREQUISITE**: All tests depend on Task #16 completion (removal of keyword-based logic).
+
+1. **Semantic Follow-Up Detection Testing**: Test that LLM-based follow-up detection correctly identifies when responses are complete vs incomplete, considering existing context. Verify it doesn't trigger follow-ups when information was provided in different words.
+
+2. **Context-Aware Question Validation**: Test specific scenarios from root cause analysis - user provides "2GB, 10 minutes video" in profiler, verify app agent doesn't re-ask about storage but asks intelligent follow-ups like "Given your 2GB video files, what's your expected concurrent upload volume?"
+
+3. **Semantic Skip Detection**: Test that LLM-based skip detection recognizes various ways users indicate information was already provided ("mentioned earlier", "covered this", "already told you") not just literal "skip" keywords.
+
+4. **Information Completeness Testing**: Create test cases where users mention specific details ("15 properties", "PostgreSQL database", "$50k budget") to one agent, verify subsequent agents reference these facts instead of re-asking.
+
+5. **Cross-Pillar Semantic Mapping**: Test that technical specs from profiler (video duration, file sizes) are properly understood and connected to infrastructure questions in app pillar through semantic analysis, not keyword matching.
+
+6. **Gap Analysis Testing**: Verify agents correctly identify what information is missing vs what's already provided through semantic understanding, and focus questions on actual gaps.
+
+7. **Repetition Prevention**: Run comprehensive tests ensuring no agent asks for information clearly provided in previous pillars, with specific test cases for common repetition patterns identified in the bug analysis.
+
+8. **Intelligent Question Generation**: Test that agents generate semantically aware questions like "You mentioned 15 properties - what's the average occupancy rate?" instead of generic "How many users do you have?"

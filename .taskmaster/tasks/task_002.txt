@@ -1,0 +1,52 @@
+# Task ID: 2
+# Title: Implement State Management System
+# Status: done
+# Dependencies: 1
+# Priority: high
+# Description: Create the core state management module that handles chat history, application state, and summaries as defined in the PRD data flow section
+# Details:
+Implement core/state_manager.py:
+```python
+class StateManager:
+    def __init__(self):
+        self.state = {
+            "chat_history": {},
+            "state": {
+                "user_profile": {
+                    "expertise_level": None,
+                    "project_description": None,
+                    "gauged_complexity": None,
+                },
+                "current_document": {},
+                "all_conversations": [],
+                "follow_up_counts": {}
+            },
+            "summaries": {
+                "profiler": {},
+                "business": {},
+                "app": {},
+                "tribal": {}
+            }
+        }
+    
+    def update_chat_history(self, pillar_name, messages):
+        if pillar_name not in self.state["chat_history"]:
+            self.state["chat_history"][pillar_name] = []
+        self.state["chat_history"][pillar_name].extend(messages)
+    
+    def update_user_profile(self, profile_data):
+        self.state["state"]["user_profile"].update(profile_data)
+    
+    def add_summary(self, pillar_name, summary):
+        self.state["summaries"][pillar_name] = summary
+    
+    def get_context_for_agent(self, pillar_name):
+        return {
+            "user_profile": self.state["state"]["user_profile"],
+            "summaries": self.state["summaries"],
+            "current_document": self.state["state"]["current_document"]
+        }
+```
+
+# Test Strategy:
+Unit test state initialization, update methods, and context retrieval. Verify state persistence across agent transitions and proper isolation of chat histories per pillar.

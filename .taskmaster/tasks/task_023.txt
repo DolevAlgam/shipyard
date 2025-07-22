@@ -1,0 +1,188 @@
+# Task ID: 23
+# Title: Fix Duplicated Welcome Message and Clean Up Initial Application Flow
+# Status: pending
+# Dependencies: 1, 8, 9
+# Priority: high
+# Description: Remove the redundant welcome message duplication where "Let me start by understanding you and your project..." appears after the main welcome message, creating a single, clear, and streamlined initial user experience without repetitive information.
+# Details:
+**FIX DUPLICATED WELCOME MESSAGE AND STREAMLINE INITIAL FLOW**
+
+**ROOT CAUSE ANALYSIS**:
+The application currently displays a main welcome message followed immediately by a redundant "Let me start by understanding you and your project..." message that repeats the same intent. This creates confusion and a poor first impression.
+
+**IMPLEMENTATION STEPS**:
+
+**1. Identify and Consolidate Welcome Messages**:
+Locate all welcome message instances in the codebase:
+```python
+# Search for patterns in:
+# - main.py (application entry point)
+# - agents/profiler.py (ProfilerAgent initial message)
+# - core/state_manager.py (initial state setup)
+# - utils/helpers.py (any welcome message utilities)
+```
+
+**2. Create Unified Welcome Message Handler**:
+In `core/welcome_handler.py`:
+```python
+class WelcomeHandler:
+    def __init__(self):
+        self.welcome_shown = False
+    
+    def get_welcome_message(self) -> str:
+        """Return the single, unified welcome message"""
+        if self.welcome_shown:
+            return ""
+        
+        self.welcome_shown = True
+        return """
+Welcome to the Infrastructure Interview Agent! 🚀
+
+I'm here to help you design the perfect infrastructure for your project. 
+Through a series of focused conversations, I'll gather all the information 
+needed to create a comprehensive infrastructure plan tailored to your needs.
+
+Let's begin by understanding you and your project.
+"""
+    
+    def reset(self):
+        """Reset welcome state for new sessions"""
+        self.welcome_shown = False
+```
+
+**3. Remove Redundant Messages from ProfilerAgent**:
+Update `agents/profiler.py`:
+```python
+class ProfilerAgent(BaseAgent):
+    def __init__(self, openai_client):
+        super().__init__(openai_client)
+        # Remove any hardcoded welcome messages
+        
+    def get_initial_message(self) -> str:
+        # Instead of "Let me start by understanding you..."
+        return "First, I'd like to know a bit about your background and experience level."
+```
+
+**4. Update Main Application Flow**:
+In `main.py`:
+```python
+from core.welcome_handler import WelcomeHandler
+
+async def main():
+    welcome_handler = WelcomeHandler()
+    
+    # Display welcome message once at startup
+    print(welcome_handler.get_welcome_message())
+    
+    # Initialize agents without redundant welcomes
+    profiler_agent = ProfilerAgent(openai_client)
+    
+    # Start profiler without duplicate introduction
+    await profiler_agent.start_interview()  # No welcome, straight to questions
+```
+
+**5. Clean Up State Manager Initialization**:
+Update `core/state_manager.py`:
+```python
+class StateManager:
+    def __init__(self):
+        self.state = {
+            "welcome_shown": False,  # Track welcome state
+            "current_agent": None,
+            # ... other state
+        }
+    
+    def initialize_session(self):
+        """Initialize new session without duplicate welcomes"""
+        if not self.state["welcome_shown"]:
+            self.state["welcome_shown"] = True
+            # Don't emit welcome here if already shown in main
+```
+
+**6. Remove Any Welcome Logic from Agent Base Class**:
+Update `agents/base_agent.py`:
+```python
+class BaseAgent:
+    def __init__(self, openai_client):
+        self.openai_client = openai_client
+        # Remove any welcome message logic
+        
+    async def start(self):
+        """Start agent without welcome messages"""
+        # Direct to agent-specific functionality
+        pass
+```
+
+**7. Ensure Clean Transitions Between Agents**:
+```python
+# In agent transition logic
+def transition_to_next_agent(current_agent, next_agent):
+    """Smooth transition without repeated introductions"""
+    transition_message = f"Great! Now let's move on to {next_agent.get_section_name()}."
+    return transition_message
+```
+
+**8. Add Configuration for Welcome Behavior**:
+In `.env`:
+```
+SHOW_WELCOME_MESSAGE=true
+WELCOME_MESSAGE_STYLE=concise  # or 'detailed'
+```
+
+**EXPECTED OUTCOME**:
+- Single, clear welcome message when application starts
+- No redundant "Let me start by understanding..." message
+- Smooth flow directly into ProfilerAgent questions
+- Clean transitions between agents without repetitive introductions
+- Improved user experience with clear, non-redundant communication
+
+# Test Strategy:
+**COMPREHENSIVE TESTING FOR WELCOME MESSAGE FIX**:
+
+**1. Welcome Message Deduplication Testing**:
+- Start the application and verify only ONE welcome message appears
+- Confirm no "Let me start by understanding you and your project..." duplicate
+- Test that ProfilerAgent begins with direct questions, not redundant introduction
+- Verify welcome message contains all necessary information in single display
+
+**2. Session Flow Testing**:
+- Run complete interview flow from start to finish
+- Verify welcome appears only at application start
+- Test that restarting interview doesn't show welcome again in same session
+- Confirm new session (application restart) shows welcome once
+
+**3. Agent Transition Testing**:
+- Test transitions between all agents (Profiler → Business → App → etc.)
+- Verify no agent introduces itself with welcome-like messages
+- Confirm transitions are smooth with contextual messages only
+- Test that each agent starts with its specific questions immediately
+
+**4. State Management Verification**:
+- Check StateManager tracks welcome_shown flag correctly
+- Verify flag persists throughout session
+- Test reset functionality clears welcome state for new sessions
+- Confirm no state corruption affects welcome display
+
+**5. Edge Case Testing**:
+- Test application crash and restart (should show welcome again)
+- Test multiple concurrent sessions (each should have independent welcome state)
+- Verify error handling doesn't trigger duplicate welcomes
+- Test with SHOW_WELCOME_MESSAGE=false in config
+
+**6. User Experience Validation**:
+- Conduct user testing to confirm improved flow
+- Measure time to first meaningful interaction (should be faster)
+- Verify no user confusion about application state
+- Confirm professional, polished first impression
+
+**7. Code Search Verification**:
+- Search codebase for any remaining "Let me start by understanding" strings
+- Verify no hardcoded welcome messages in individual agents
+- Confirm all welcome logic centralized in WelcomeHandler
+- Check for any console.log or print statements with welcome text
+
+**8. Integration Testing**:
+- Test with all dependent systems (OpenAI client, State Manager, etc.)
+- Verify welcome handler integrates cleanly with existing architecture
+- Test with different OpenAI models to ensure consistency
+- Confirm no regression in other functionality

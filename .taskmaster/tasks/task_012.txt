@@ -1,0 +1,80 @@
+# Task ID: 12
+# Title: Improve Summary Generation Quality
+# Status: pending
+# Dependencies: 16, 11, 5, 2
+# Priority: high
+# Description: Enhance the SummarizerAgent to create more detailed, structured summaries that capture all key information including numbers, timelines, and technical specifications to prevent context loss between pillars.
+# Details:
+**UPDATED ROOT CAUSE**: Summary quality issues are a direct symptom of the keyword-based architecture violation identified in Task #16. All agents bypass the well-designed `SummarizerAgent` and use primitive keyword-matching `_extract_summary()` methods that cannot understand semantic meaning.
+
+**CRITICAL EVIDENCE OF KEYWORD-BASED SUMMARY FAILURES**:
+
+1. **Business Agent Bug** (`agents/business.py` lines 117-137):
+   ```python
+   if any(scale in content for scale in ["thousand", "million", "hundred", "k", "m"]):
+       summary["user_scale"] = message["content"]  # Stores entire message!
+   ```
+   **Result**: User says "I have 15 properties, expecting 1000 users daily" → summary stores entire message as "user_scale" instead of extracting "15 properties" and "1000 daily users"
+
+2. **App Agent Bug** (`agents/app.py` lines 117-147):
+   ```python
+   if any(lang in content for lang in languages):
+       summary["programming_languages"] = message["content"]
+   ```
+   **Result**: User says "I prefer Python but might use JavaScript for frontend" → summary stores entire message instead of extracting structured language preferences
+
+3. **All Agents Use Same Broken Pattern**:
+   - Tribal, Profiler, Feedback agents all use keyword detection + store entire message
+   - No semantic understanding of actual values, quantities, or relationships
+   - Information gets lost in noise instead of clean structured extraction
+
+**REVISED IMPLEMENTATION PLAN** (Dependent on Task #16 completion):
+
+1. **PREREQUISITE: Complete Task #16 First**:
+   - Remove ALL `_extract_summary()` methods from all agent files
+   - Force all agents to use `SummarizerAgent.summarize_pillar()` exclusively
+   - Eliminate all keyword-based extraction logic
+
+2. **Enhanced SummarizerAgent Prompts for Structured Data Extraction**:
+   - Update `core/prompts.py` SUMMARIZER_PROMPT with specific value extraction instructions:
+     - "Extract specific numerical values with units (e.g., '15 properties', '$200/month', '2GB videos')"
+     - "Distinguish between 'no budget specified' vs '$50k budget'"
+     - "Capture exact technical terms mentioned by user"
+     - "Structure output according to the defined schema"
+
+3. **Implement Structured Summary Format**:
+   - Update `agents/summarizer.py` with standardized output schema:
+   ```python
+   SUMMARY_SCHEMA = {
+       "extracted_values": {
+           "user_counts": "specific numbers (e.g., 1000 daily users)",
+           "budget_amounts": "exact figures (e.g., $200/month, $50k total)",
+           "storage_needs": "capacity requirements (e.g., 2GB videos, 500MB files)",
+           "timelines": "specific dates and deadlines"
+       },
+       "technical_specs": {
+           "frameworks": "mentioned technologies",
+           "databases": "specific database choices",
+           "cloud_providers": "AWS, Azure, GCP preferences",
+           "compliance": "GDPR, HIPAA, SOX requirements"
+       },
+       "business_context": {
+           "industry": "user's business domain",
+           "use_cases": "primary application purposes",
+           "constraints": "limitations and requirements"
+       }
+   }
+   ```
+
+4. **Cross-Pillar Information Synthesis**:
+   - Implement logic in `SummarizerAgent` to merge related information mentioned across different pillars
+   - Add validation to prevent duplicate or conflicting information
+   - Create cross-reference system to link related details (e.g., video storage mentioned in both business and app pillars)
+
+5. **Summary Quality Validation**:
+   - Add validation checks to ensure summaries contain actual extracted values, not full message content
+   - Implement logic to verify critical information isn't lost during summarization
+   - Add fallback mechanisms for edge cases and ambiguous user responses
+
+# Test Strategy:
+1. **Prerequisite Validation**: Verify Task #16 completion - confirm NO `_extract_summary()` methods exist in any agent files and all agents use `SummarizerAgent.summarize_pillar()` exclusively. 2. **Semantic Value Extraction Testing**: Create test cases with specific numbers, budgets, and technical terms to verify summaries extract actual values ("$50k budget", "15 properties", "1000 daily users") not just detect keywords or store entire messages. 3. **Cross-Pillar Synthesis Testing**: Test scenarios where users mention related information across different pillars (e.g., video storage in business and app pillars) and verify proper consolidation without duplication. 4. **Schema Compliance Testing**: Verify all summaries follow the structured output format and contain extracted values in correct schema fields. 5. **Regression Testing**: Ensure fixes don't break existing functionality and that summary quality improves measurably compared to keyword-based approach. 6. **Edge Case Testing**: Test with ambiguous responses like "I don't have a specific budget" to ensure proper categorization vs value extraction. 7. **No Keyword Logic Verification**: Confirm no traces of keyword-based extraction remain anywhere in the codebase.

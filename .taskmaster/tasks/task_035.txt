@@ -1,0 +1,494 @@
+# Task ID: 35
+# Title: Create User Profile Context Validator
+# Status: pending
+# Dependencies: 34, 22, 2, 3, 4
+# Priority: high
+# Description: Implement a specialized agent that ensures all document recommendations align with user profile constraints (solo founder vs team, MVP vs enterprise scale, budget constraints, timeline pressure, expertise level)
+# Details:
+**USER PROFILE CONTEXT VALIDATOR IMPLEMENTATION**
+
+**1. Create Profile Validation Agent** (`agents/validators/profile_context_validator.py`):
+```python
+from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from enum import Enum
+import weave
+
+class ProfileType(Enum):
+    SOLO_FOUNDER = "solo_founder"
+    SMALL_TEAM = "small_team"
+    ENTERPRISE = "enterprise"
+
+class ScaleType(Enum):
+    MVP = "mvp"
+    GROWTH = "growth"
+    ENTERPRISE = "enterprise"
+
+@dataclass
+class ValidationResult:
+    is_valid: bool
+    violations: List[str]
+    suggestions: List[str]
+    confidence: float
+
+class ProfileContextValidator:
+    def __init__(self, openai_client):
+        self.openai_client = openai_client
+        self.validation_rules = self._initialize_validation_rules()
+    
+    @weave.op()
+    async def validate_recommendation(
+        self, 
+        recommendation: str, 
+        user_profile: Dict,
+        section_name: str
+    ) -> ValidationResult:
+        """Validate a recommendation against user profile constraints"""
+        
+        # Extract profile characteristics
+        profile_type = self._determine_profile_type(user_profile)
+        scale_type = self._determine_scale_type(user_profile)
+        
+        # Use LLM to analyze recommendation compatibility
+        validation_prompt = f"""
+        Analyze if this recommendation is appropriate for the user profile:
+        
+        User Profile:
+        - Type: {profile_type.value}
+        - Scale: {scale_type.value}
+        - Expertise: {user_profile.get('expertise_level', 'unknown')}
+        - Budget: {user_profile.get('budget_constraints', 'not specified')}
+        - Timeline: {user_profile.get('timeline_pressure', 'not specified')}
+        
+        Recommendation:
+        {recommendation}
+        
+        Section: {section_name}
+        
+        Identify any misalignments such as:
+        1. Recommending team structures for solo founders
+        2. Suggesting enterprise solutions for MVP projects
+        3. Proposing complex setups for low expertise users
+        4. Exceeding budget or timeline constraints
+        
+        Return analysis as JSON with fields:
+        - is_valid: boolean
+        - violations: list of specific misalignments found
+        - suggestions: list of alternative recommendations
+        - confidence: float (0-1)
+        """
+        
+        response = await self.openai_client.call_agent(
+            system_prompt="You are a validation expert analyzing infrastructure recommendations.",
+            user_message=validation_prompt
+        )
+        
+        return self._parse_validation_response(response)
+    
+    @weave.op()
+    async def validate_document_section(
+        self,
+        section_content: str,
+        section_name: str,
+        user_profile: Dict
+    ) -> Dict[str, ValidationResult]:
+        """Validate an entire document section"""
+        
+        # Extract individual recommendations from section
+        recommendations = await self._extract_recommendations(section_content)
+        
+        validation_results = {}
+        for idx, rec in enumerate(recommendations):
+            result = await self.validate_recommendation(
+                rec, 
+                user_profile, 
+                section_name
+            )
+            validation_results[f"rec_{idx}"] = result
+        
+        return validation_results
+    
+    async def _extract_recommendations(self, content: str) -> List[str]:
+        """Use LLM to extract discrete recommendations from content"""
+        
+        extraction_prompt = f"""
+        Extract individual recommendations or suggestions from this content.
+        Each recommendation should be a complete, standalone suggestion.
+        
+        Content:
+        {content}
+        
+        Return as a JSON array of recommendation strings.
+        """
+        
+        response = await self.openai_client.call_agent(
+            system_prompt="You are an expert at parsing technical documentation.",
+            user_message=extraction_prompt
+        )
+        
+        # Parse JSON response
+        import json
+        try:
+            return json.loads(response)
+        except:
+            return [content]  # Fallback to treating entire content as one recommendation
+```
+
+**2. Create Profile-Aware Constraint Checker** (`agents/validators/constraint_checker.py`):
+```python
+@dataclass
+class ProfileConstraints:
+    max_team_size: Optional[int]
+    max_budget: Optional[float]
+    max_timeline_days: Optional[int]
+    allowed_technologies: Optional[List[str]]
+    forbidden_patterns: List[str]
+
+class ConstraintChecker:
+    def __init__(self, openai_client):
+        self.openai_client = openai_client
+    
+    @weave.op()
+    async def extract_constraints(self, user_profile: Dict) -> ProfileConstraints:
+        """Extract hard constraints from user profile using LLM"""
+        
+        constraint_prompt = f"""
+        Based on this user profile, identify hard constraints:
+        
+        Profile: {json.dumps(user_profile, indent=2)}
+        
+        Extract:
+        1. Maximum team size (null if not solo)
+        2. Budget limits
+        3. Timeline constraints
+        4. Technology restrictions
+        5. Patterns to avoid (e.g., "team meetings" for solo founders)
+        
+        Return as JSON matching ProfileConstraints structure.
+        """
+        
+        response = await self.openai_client.call_agent(
+            system_prompt="You are an expert at understanding project constraints.",
+            user_message=constraint_prompt
+        )
+        
+        return self._parse_constraints(response)
+    
+    @weave.op()
+    async def check_constraint_violations(
+        self,
+        content: str,
+        constraints: ProfileConstraints
+    ) -> List[str]:
+        """Check content against hard constraints"""
+        
+        violation_prompt = f"""
+        Check if this content violates any of these constraints:
+        
+        Content:
+        {content}
+        
+        Constraints:
+        - Max team size: {constraints.max_team_size}
+        - Max budget: {constraints.max_budget}
+        - Max timeline: {constraints.max_timeline_days} days
+        - Forbidden patterns: {constraints.forbidden_patterns}
+        
+        List any specific violations found.
+        """
+        
+        response = await self.openai_client.call_agent(
+            system_prompt="You are a constraint validation expert.",
+            user_message=violation_prompt
+        )
+        
+        return self._parse_violations(response)
+```
+
+**3. Create Recommendation Adapter** (`agents/validators/recommendation_adapter.py`):
+```python
+class RecommendationAdapter:
+    def __init__(self, openai_client):
+        self.openai_client = openai_client
+    
+    @weave.op()
+    async def adapt_recommendation(
+        self,
+        original_recommendation: str,
+        user_profile: Dict,
+        violations: List[str]
+    ) -> str:
+        """Adapt a recommendation to fit user profile constraints"""
+        
+        adaptation_prompt = f"""
+        Adapt this recommendation to fit the user's constraints:
+        
+        Original: {original_recommendation}
+        
+        User Profile:
+        - Type: {user_profile.get('type', 'unknown')}
+        - Scale: {user_profile.get('scale', 'unknown')}
+        - Expertise: {user_profile.get('expertise_level', 'unknown')}
+        
+        Violations to fix:
+        {chr(10).join(f"- {v}" for v in violations)}
+        
+        Provide an adapted version that:
+        1. Maintains the core value/purpose
+        2. Fits the user's constraints
+        3. Uses appropriate language for their expertise
+        4. Scales to their project size
+        
+        Return only the adapted recommendation text.
+        """
+        
+        return await self.openai_client.call_agent(
+            system_prompt="You are an expert at adapting technical recommendations.",
+            user_message=adaptation_prompt
+        )
+    
+    @weave.op()
+    async def generate_profile_specific_alternatives(
+        self,
+        topic: str,
+        user_profile: Dict,
+        count: int = 3
+    ) -> List[str]:
+        """Generate alternative recommendations tailored to profile"""
+        
+        alternatives_prompt = f"""
+        Generate {count} recommendations for {topic} specifically tailored to:
+        
+        User Profile:
+        - Solo founder: {user_profile.get('is_solo', False)}
+        - MVP stage: {user_profile.get('is_mvp', False)}
+        - Limited budget: {user_profile.get('budget_constrained', False)}
+        - Expertise: {user_profile.get('expertise_level', 'intermediate')}
+        
+        Each recommendation should be:
+        1. Practical and implementable
+        2. Appropriate for their scale
+        3. Within likely constraints
+        4. Progressive (start simple, scale later)
+        
+        Return as a JSON array of recommendation strings.
+        """
+        
+        response = await self.openai_client.call_agent(
+            system_prompt="You are an infrastructure planning expert.",
+            user_message=alternatives_prompt
+        )
+        
+        return json.loads(response)
+```
+
+**4. Integrate with Document Generation** (`agents/document_generator_v2.py`):
+```python
+class ValidatedDocumentGenerator:
+    def __init__(self, openai_client, state_manager):
+        self.openai_client = openai_client
+        self.state_manager = state_manager
+        self.validator = ProfileContextValidator(openai_client)
+        self.constraint_checker = ConstraintChecker(openai_client)
+        self.adapter = RecommendationAdapter(openai_client)
+    
+    @weave.op()
+    async def generate_validated_section(
+        self,
+        section_name: str,
+        section_agent,
+        user_profile: Dict
+    ) -> str:
+        """Generate a section with profile validation"""
+        
+        # Generate initial content
+        initial_content = await section_agent.generate_section(
+            self.state_manager.get_state(),
+            self.openai_client
+        )
+        
+        # Extract constraints
+        constraints = await self.constraint_checker.extract_constraints(user_profile)
+        
+        # Validate content
+        validation_results = await self.validator.validate_document_section(
+            initial_content,
+            section_name,
+            user_profile
+        )
+        
+        # Adapt any invalid recommendations
+        adapted_content = initial_content
+        for rec_id, result in validation_results.items():
+            if not result.is_valid:
+                # Extract the specific recommendation
+                rec_text = self._extract_recommendation_by_id(initial_content, rec_id)
+                
+                # Adapt it
+                adapted_rec = await self.adapter.adapt_recommendation(
+                    rec_text,
+                    user_profile,
+                    result.violations
+                )
+                
+                # Replace in content
+                adapted_content = adapted_content.replace(rec_text, adapted_rec)
+        
+        return adapted_content
+    
+    @weave.op()
+    async def validate_complete_document(
+        self,
+        document: str,
+        user_profile: Dict
+    ) -> Dict[str, Any]:
+        """Perform final validation on complete document"""
+        
+        validation_prompt = f"""
+        Perform a comprehensive validation of this document against the user profile:
+        
+        User Profile Summary:
+        - Solo founder: {user_profile.get('is_solo', False)}
+        - Project scale: {user_profile.get('scale', 'unknown')}
+        - Expertise: {user_profile.get('expertise_level', 'unknown')}
+        - Key constraints: {user_profile.get('constraints', [])}
+        
+        Document:
+        {document}
+        
+        Check for:
+        1. Any recommendations inappropriate for profile
+        2. Complexity mismatches
+        3. Scale misalignments
+        4. Budget/timeline violations
+        5. Team structure assumptions
+        
+        Return validation report as JSON with:
+        - overall_valid: boolean
+        - issues: list of specific problems
+        - severity: 'critical', 'major', 'minor'
+        - fix_suggestions: list of corrections needed
+        """
+        
+        response = await self.openai_client.call_agent(
+            system_prompt="You are a document validation expert.",
+            user_message=validation_prompt
+        )
+        
+        return json.loads(response)
+```
+
+**5. Create Validation Pipeline** (`core/validation_pipeline.py`):
+```python
+class ValidationPipeline:
+    def __init__(self, openai_client):
+        self.validator = ProfileContextValidator(openai_client)
+        self.checker = ConstraintChecker(openai_client)
+        self.adapter = RecommendationAdapter(openai_client)
+    
+    async def run_validation_pipeline(
+        self,
+        document: str,
+        user_profile: Dict
+    ) -> Tuple[str, Dict]:
+        """Run complete validation and adaptation pipeline"""
+        
+        # Step 1: Extract all constraints
+        constraints = await self.checker.extract_constraints(user_profile)
+        
+        # Step 2: Validate each section
+        sections = self._parse_document_sections(document)
+        validation_report = {}
+        
+        for section_name, content in sections.items():
+            results = await self.validator.validate_document_section(
+                content,
+                section_name,
+                user_profile
+            )
+            validation_report[section_name] = results
+        
+        # Step 3: Adapt invalid recommendations
+        adapted_document = document
+        for section_name, results in validation_report.items():
+            for rec_id, result in results.items():
+                if not result.is_valid:
+                    # Apply adaptations
+                    adapted_document = await self._apply_adaptation(
+                        adapted_document,
+                        section_name,
+                        rec_id,
+                        result,
+                        user_profile
+                    )
+        
+        # Step 4: Final validation
+        final_validation = await self.validator.validate_complete_document(
+            adapted_document,
+            user_profile
+        )
+        
+        return adapted_document, final_validation
+```
+
+# Test Strategy:
+**COMPREHENSIVE VALIDATION TESTING STRATEGY**:
+
+**1. Profile Type Detection Testing**:
+- Test with clear solo founder profiles (no team mentions, single person pronouns)
+- Test with small team profiles (2-5 people mentioned)
+- Test with enterprise profiles (departments, large teams)
+- Verify correct ProfileType enum assignment
+- Test edge cases (contractor mentions, future hiring plans)
+
+**2. Constraint Extraction Testing**:
+- Test extraction from profiles with explicit constraints ("budget is $5000", "need to launch in 30 days")
+- Test extraction from implicit constraints (MVP = limited budget, solo = no team meetings)
+- Verify constraint parsing handles missing information gracefully
+- Test with contradictory information handling
+
+**3. Validation Logic Testing**:
+- **Solo Founder Violations**:
+  - Test detection of team-oriented recommendations ("daily standups", "team retrospectives")
+  - Verify catches role-based suggestions ("assign a DevOps engineer")
+  - Test for communication tool recommendations inappropriate for solo work
+  
+- **Scale Mismatches**:
+  - Test MVP profiles getting enterprise recommendations (Kubernetes for 10 users)
+  - Test enterprise profiles getting inadequate recommendations (SQLite for millions of users)
+  - Verify appropriate technology suggestions for each scale
+  
+- **Expertise Mismatches**:
+  - Test beginner profiles getting complex recommendations without guidance
+  - Test expert profiles getting overly simplified suggestions
+  - Verify language complexity matches expertise level
+
+**4. Recommendation Adaptation Testing**:
+- Test adaptation of team meeting suggestion for solo founder → personal review schedule
+- Test scaling down of enterprise solution for MVP → appropriate alternative
+- Test simplification of complex setup for beginners → step-by-step approach
+- Verify adapted recommendations maintain core value/purpose
+
+**5. Integration Testing**:
+- Test full document generation with validation pipeline
+- Verify all sections get validated
+- Test that adaptations are properly applied to final document
+- Ensure validation report accurately reflects all issues found
+
+**6. Edge Case Testing**:
+- Test with profiles that change mid-interview (solo founder mentions hiring)
+- Test with ambiguous scale indicators
+- Test with missing profile information
+- Verify graceful handling of LLM parsing failures
+
+**7. Performance Testing**:
+- Measure validation overhead on document generation time
+- Test with large documents (many recommendations)
+- Verify validation doesn't create infinite adaptation loops
+- Test timeout handling for validation operations
+
+**8. Accuracy Testing**:
+- Create test set of known good/bad recommendation pairs for different profiles
+- Measure false positive rate (valid recommendations marked invalid)
+- Measure false negative rate (invalid recommendations missed)
+- Track validation confidence scores accuracy

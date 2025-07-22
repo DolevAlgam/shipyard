@@ -1,0 +1,369 @@
+# Task ID: 36
+# Title: Implement Scale-Appropriate Infrastructure Recommendations Agent
+# Status: pending
+# Dependencies: 2, 3, 5, 6, 7, 8, 19, 22, 29, 34
+# Priority: high
+# Description: Create an intelligent agent that dynamically adjusts infrastructure complexity recommendations based on actual user needs, preventing over-engineering for small-scale applications while ensuring appropriate scaling for enterprise deployments.
+# Details:
+**SCALE-APPROPRIATE INFRASTRUCTURE RECOMMENDATIONS AGENT**
+
+**1. Create Scale Analysis Agent** (`agents/scale_analyzer.py`):
+```python
+from .base_agent import BaseAgent
+from core.prompts import SCALE_ANALYZER_PROMPT
+from typing import Dict, Optional, List
+from enum import Enum
+import weave
+
+class ScaleCategory(str, Enum):
+    MVP = "mvp"  # 1-10 users, proof of concept
+    SMALL = "small"  # 10-100 users, early stage
+    MEDIUM = "medium"  # 100-1000 users, growing
+    LARGE = "large"  # 1000-10000 users, established
+    ENTERPRISE = "enterprise"  # 10000+ users, complex needs
+
+class InfrastructureComplexity(str, Enum):
+    MINIMAL = "minimal"  # Single server, basic setup
+    SIMPLE = "simple"  # Basic redundancy, monitoring
+    MODERATE = "moderate"  # Load balancing, caching
+    COMPLEX = "complex"  # Multi-region, advanced features
+    ENTERPRISE = "enterprise"  # Full enterprise stack
+
+class ScaleAnalyzerAgent(BaseAgent):
+    def __init__(self):
+        super().__init__("scale_analyzer", [], SCALE_ANALYZER_PROMPT)
+        self.scale_thresholds = {
+            ScaleCategory.MVP: {
+                "max_users": 10,
+                "max_requests_per_day": 1000,
+                "complexity": InfrastructureComplexity.MINIMAL
+            },
+            ScaleCategory.SMALL: {
+                "max_users": 100,
+                "max_requests_per_day": 10000,
+                "complexity": InfrastructureComplexity.SIMPLE
+            },
+            ScaleCategory.MEDIUM: {
+                "max_users": 1000,
+                "max_requests_per_day": 100000,
+                "complexity": InfrastructureComplexity.MODERATE
+            },
+            ScaleCategory.LARGE: {
+                "max_users": 10000,
+                "max_requests_per_day": 1000000,
+                "complexity": InfrastructureComplexity.COMPLEX
+            },
+            ScaleCategory.ENTERPRISE: {
+                "max_users": float('inf'),
+                "max_requests_per_day": float('inf'),
+                "complexity": InfrastructureComplexity.ENTERPRISE
+            }
+        }
+    
+    @weave.op()
+    async def analyze_scale_requirements(self, state: Dict, openai_client) -> Dict:
+        """Analyze user's actual scale needs from state"""
+        user_profile = state.get("user_profile", {})
+        business_requirements = state.get("business_requirements", {})
+        
+        # Extract key metrics
+        user_count = business_requirements.get("expected_users", 0)
+        traffic_patterns = business_requirements.get("traffic_patterns", {})
+        growth_projections = business_requirements.get("growth_projections", {})
+        
+        # Use LLM to analyze scale requirements
+        scale_analysis = await self._analyze_with_llm(
+            user_count, traffic_patterns, growth_projections, 
+            user_profile, openai_client
+        )
+        
+        return {
+            "scale_category": scale_analysis["category"],
+            "infrastructure_complexity": scale_analysis["complexity"],
+            "recommendations": scale_analysis["recommendations"],
+            "anti_patterns_to_avoid": scale_analysis["anti_patterns"]
+        }
+    
+    @weave.op()
+    async def generate_scale_appropriate_recommendations(
+        self, scale_analysis: Dict, state: Dict, openai_client
+    ) -> Dict:
+        """Generate infrastructure recommendations appropriate to scale"""
+        scale_category = scale_analysis["scale_category"]
+        
+        if scale_category == ScaleCategory.MVP:
+            return await self._generate_mvp_recommendations(state, openai_client)
+        elif scale_category == ScaleCategory.SMALL:
+            return await self._generate_small_scale_recommendations(state, openai_client)
+        elif scale_category == ScaleCategory.MEDIUM:
+            return await self._generate_medium_scale_recommendations(state, openai_client)
+        elif scale_category == ScaleCategory.LARGE:
+            return await self._generate_large_scale_recommendations(state, openai_client)
+        else:
+            return await self._generate_enterprise_recommendations(state, openai_client)
+    
+    @weave.op()
+    async def _generate_mvp_recommendations(self, state: Dict, openai_client) -> Dict:
+        """Generate minimal viable infrastructure for MVP/POC"""
+        prompt = f"""
+        Generate infrastructure recommendations for an MVP with 5-10 users.
+        Focus on:
+        - Single server deployment (e.g., Railway, Render, or single EC2)
+        - SQLite or managed PostgreSQL with minimal config
+        - Basic monitoring (uptime checks only)
+        - Simple deployment (git push to deploy)
+        - No load balancing or complex networking
+        - Basic security (HTTPS, environment variables)
+        
+        Explicitly avoid:
+        - Kubernetes or container orchestration
+        - Multi-region deployment
+        - Complex CI/CD pipelines
+        - Enterprise monitoring stacks
+        - Team management structures
+        
+        User context: {state.get('user_profile', {})}
+        """
+        
+        response = await openai_client.call_agent(
+            system_prompt=SCALE_ANALYZER_PROMPT,
+            user_message=prompt
+        )
+        
+        return self._parse_recommendations(response)
+```
+
+**2. Create Infrastructure Complexity Mapper** (`agents/complexity_mapper.py`):
+```python
+class ComplexityMapper:
+    """Maps scale requirements to specific infrastructure components"""
+    
+    def __init__(self):
+        self.complexity_map = {
+            InfrastructureComplexity.MINIMAL: {
+                "compute": ["Single server", "Shared hosting", "Serverless functions"],
+                "database": ["SQLite", "Single PostgreSQL instance"],
+                "caching": None,
+                "load_balancing": None,
+                "monitoring": ["Basic uptime monitoring", "Error logs"],
+                "security": ["HTTPS", "Basic firewall", "Environment variables"],
+                "backup": ["Daily database backup"],
+                "ci_cd": ["Git push to deploy", "Basic GitHub Actions"]
+            },
+            InfrastructureComplexity.SIMPLE: {
+                "compute": ["2-3 servers", "Basic auto-scaling group"],
+                "database": ["Managed PostgreSQL with read replica"],
+                "caching": ["Redis for sessions"],
+                "load_balancing": ["Simple round-robin LB"],
+                "monitoring": ["APM basics", "Error tracking"],
+                "security": ["WAF", "Basic DDoS protection"],
+                "backup": ["Automated backups with point-in-time recovery"],
+                "ci_cd": ["Staging environment", "Automated testing"]
+            },
+            InfrastructureComplexity.MODERATE: {
+                "compute": ["Auto-scaling groups", "Container deployment"],
+                "database": ["Multi-AZ database", "Read replicas"],
+                "caching": ["Redis cluster", "CDN for static assets"],
+                "load_balancing": ["Application load balancer", "Health checks"],
+                "monitoring": ["Full APM", "Custom metrics", "Alerting"],
+                "security": ["VPN", "Security groups", "Secrets management"],
+                "backup": ["Cross-region backups", "Disaster recovery plan"],
+                "ci_cd": ["Blue-green deployments", "Feature flags"]
+            }
+        }
+    
+    @weave.op()
+    async def map_to_infrastructure(
+        self, complexity: InfrastructureComplexity, 
+        requirements: Dict, openai_client
+    ) -> Dict:
+        """Map complexity level to specific infrastructure components"""
+        base_components = self.complexity_map.get(complexity, {})
+        
+        # Use LLM to customize based on specific requirements
+        customized = await self._customize_components(
+            base_components, requirements, openai_client
+        )
+        
+        return customized
+```
+
+**3. Create Anti-Pattern Detection System** (`agents/anti_pattern_detector.py`):
+```python
+class AntiPatternDetector:
+    """Detects and prevents over-engineering patterns"""
+    
+    @weave.op()
+    async def detect_over_engineering(
+        self, proposed_infrastructure: Dict, 
+        scale_analysis: Dict, openai_client
+    ) -> List[Dict]:
+        """Identify over-engineering anti-patterns"""
+        
+        prompt = f"""
+        Analyze this infrastructure proposal for over-engineering:
+        
+        Proposed Infrastructure: {proposed_infrastructure}
+        Actual Scale Needs: {scale_analysis}
+        
+        Identify any components that are:
+        1. Too complex for the actual user count
+        2. Premature optimization
+        3. Adding unnecessary operational overhead
+        4. Costing more than the value they provide
+        
+        For each over-engineered component, suggest a simpler alternative.
+        """
+        
+        response = await openai_client.call_agent(
+            system_prompt="You are an expert at identifying over-engineered infrastructure.",
+            user_message=prompt
+        )
+        
+        return self._parse_anti_patterns(response)
+```
+
+**4. Integration with Document Generation** (`agents/document_sections/scale_aware_sections.py`):
+```python
+class ScaleAwareExecutiveSummary(BaseSectionAgent):
+    """Generate executive summary that emphasizes right-sizing"""
+    
+    @weave.op()
+    async def generate_section(self, state: Dict, openai_client) -> str:
+        scale_analysis = state.get("scale_analysis", {})
+        
+        if scale_analysis.get("scale_category") == ScaleCategory.MVP:
+            return await self._generate_mvp_summary(state, openai_client)
+        else:
+            return await self._generate_scaled_summary(state, scale_analysis, openai_client)
+    
+    async def _generate_mvp_summary(self, state: Dict, openai_client) -> str:
+        prompt = """
+        Generate an executive summary for a 5-user MVP that:
+        1. Emphasizes simplicity and speed to market
+        2. Highlights cost-effectiveness
+        3. Mentions future scaling path when needed
+        4. Avoids enterprise terminology
+        5. Focuses on "just enough" infrastructure
+        """
+        # Implementation continues...
+```
+
+**5. Update Main Orchestration** (`main.py`):
+```python
+async def run_interview():
+    # Existing initialization...
+    
+    # After profiler agent
+    scale_analyzer = ScaleAnalyzerAgent()
+    scale_analysis = await scale_analyzer.analyze_scale_requirements(
+        state_manager.get_state(), openai_client
+    )
+    state_manager.update_state("scale_analysis", scale_analysis)
+    
+    # Use scale analysis throughout other agents
+    for agent in [business_agent, app_agent, tribal_agent]:
+        agent.set_scale_context(scale_analysis)
+    
+    # Before document generation
+    anti_pattern_detector = AntiPatternDetector()
+    anti_patterns = await anti_pattern_detector.detect_over_engineering(
+        proposed_infrastructure, scale_analysis, openai_client
+    )
+    
+    if anti_patterns:
+        # Adjust recommendations to remove over-engineering
+        adjusted_infrastructure = await scale_analyzer.adjust_for_scale(
+            proposed_infrastructure, anti_patterns, openai_client
+        )
+```
+
+**6. Create Scale-Specific Prompts** (`core/prompts.py`):
+```python
+SCALE_ANALYZER_PROMPT = """
+You are an infrastructure scaling expert who prevents over-engineering.
+Your primary goal is to recommend the SIMPLEST infrastructure that meets actual needs.
+
+Key principles:
+1. Start simple, scale when proven necessary
+2. Operational complexity has a cost
+3. 5 users don't need Kubernetes
+4. Perfect is the enemy of good
+5. Time to market matters
+
+Always prefer:
+- Managed services over self-hosted
+- Monoliths over microservices for small scale
+- Simple deployments over complex CI/CD
+- Basic monitoring over enterprise stacks
+"""
+
+MVP_INFRASTRUCTURE_PROMPT = """
+You are designing infrastructure for an MVP with 5-10 users.
+Recommend the absolute minimum viable infrastructure.
+
+Good choices:
+- Railway, Render, or Heroku for hosting
+- Managed PostgreSQL or even SQLite
+- GitHub Actions for simple CI/CD
+- Sentry for error tracking
+- Simple environment variables for config
+
+Avoid recommending:
+- Kubernetes, Docker Swarm, or orchestration
+- Multiple availability zones
+- Complex networking
+- Enterprise monitoring
+- Team structures for solo developers
+"""
+```
+
+# Test Strategy:
+**COMPREHENSIVE SCALE-APPROPRIATE TESTING STRATEGY**:
+
+**1. Scale Category Detection Testing**:
+- Test with "I'm building an MVP for 5 friends" → Should categorize as MVP with minimal infrastructure
+- Test with "We have 10,000 daily active users" → Should categorize as LARGE with appropriate complexity
+- Test with "Just me testing locally" → Should recognize single-user scenario and suggest minimal setup
+- Verify growth projections are considered (e.g., "5 users now but expecting 1000 in 6 months")
+
+**2. Anti-Pattern Detection Testing**:
+- Input: 5-user app with Kubernetes recommendation → Should flag as over-engineering
+- Input: Solo developer with "DevOps team structure" → Should detect and remove team recommendations
+- Input: MVP with multi-region deployment → Should suggest single region instead
+- Test that legitimate enterprise needs aren't flagged (10K users with Kubernetes should pass)
+
+**3. Infrastructure Mapping Accuracy**:
+- Verify MVP gets: Single server, SQLite/simple PostgreSQL, basic monitoring
+- Verify SMALL gets: 2-3 servers, managed DB with replica, basic caching
+- Verify ENTERPRISE gets: Full kubernetes, multi-region, complete observability
+- Test edge cases like "5 users but mission-critical medical app" for appropriate exceptions
+
+**4. Document Generation Integration**:
+- Generate document for 5-user MVP → Verify no enterprise terminology or complex architectures
+- Check executive summary emphasizes simplicity and cost-effectiveness for small scale
+- Verify security section doesn't recommend enterprise-grade solutions for personal projects
+- Test that scaling path is mentioned but not implemented prematurely
+
+**5. Cost Optimization Testing**:
+- Verify MVP infrastructure costs are estimated under $50/month
+- Test that recommendations align with stated budget constraints
+- Ensure over-engineered solutions show cost comparisons with simpler alternatives
+
+**6. Integration Testing**:
+- Run full interview flow with "personal blog with 10 visitors/day" → Verify minimal infrastructure throughout
+- Run with "e-commerce platform with 50K daily users" → Verify appropriate scaling recommendations
+- Test state persistence of scale analysis across all agents
+- Verify scale context influences questions in business, app, and tribal agents
+
+**7. Edge Case Testing**:
+- Test with conflicting signals: "5 users but need 99.999% uptime" → Should explain tradeoffs
+- Test with unclear scale: "Not sure how many users" → Should probe for more details
+- Test with growth uncertainty: "Could be 10 or 10,000 users" → Should recommend scalable starting point
+
+**8. Anti-Pattern Prevention Testing**:
+- Verify no Kubernetes recommendations for <100 users
+- Verify no multi-region setup for <1000 users  
+- Verify no complex CI/CD for solo developers
+- Verify no enterprise monitoring stacks for MVPs
+- Test that each complexity level has appropriate component recommendations

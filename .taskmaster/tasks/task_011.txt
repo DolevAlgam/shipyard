@@ -1,0 +1,81 @@
+# Task ID: 11
+# Title: Fix Agent Context Sharing Bug
+# Status: pending
+# Dependencies: 2, 5, 8, 16
+# Priority: high
+# Description: Debug and fix the context sharing issue where agents are forgetting previously provided user information and repeating questions, ensuring proper state management and summary passing between agents.
+# Details:
+**CRITICAL DISCOVERY**: The context/memory loss issues are symptoms of a deeper architectural problem - the entire codebase violates the LLM-first principle with extensive keyword matching, as identified in Task #16.
+
+**REVISED ROOT CAUSE ANALYSIS**:
+
+1. **Keyword-Based Architecture Causes Information Loss**:
+   - All agents use primitive `_extract_summary()` methods with keyword matching instead of semantic understanding
+   - Example: `if any(scale in content for scale in ["thousand", "million"])` only detects presence, not actual values
+   - User says "2GB video files" → summary captures "scale mentioned" not "2GB videos"
+   - User says "$200/month budget" → summary captures "budget discussed" not "$200/month"
+
+2. **Follow-Up Detection Ignores Context**:
+   - Keyword-based `needs_follow_up()` doesn't consider available information
+   - Agents repeat questions because keyword matching can't understand context relationships
+   - Example: User mentions "15 properties" in profiler, but business agent's keyword logic doesn't recognize this relates to scale
+
+3. **SummarizerAgent Integration Issues**:
+   - `SummarizerAgent` exists but agents still use their broken `_extract_summary()` methods
+   - Context passing in `core/state_manager.py` uses JSON dumps making data harder for AI to parse
+   - `build_system_prompt_context()` needs to pass structured data for proper semantic understanding
+
+**IMPLEMENTATION DEPENDENCY**: This task cannot be completed until Task #16 removes ALL keyword-based logic and implements proper LLM-based information extraction.
+
+**Post-Task-16 Implementation**:
+```python
+# After Task #16 completion - proper LLM-based summarization
+from agents.summarizer import SummarizerAgent
+summarizer = SummarizerAgent()
+summary = await summarizer.summarize_pillar(self.name, messages, openai_client)
+
+# Enhanced context building with semantic understanding
+def build_system_prompt_context(self) -> str:
+    context_parts = []
+    for pillar, summary in self.state.summaries.items():
+        if summary:
+            context_parts.append(f"{pillar.title()}: {self._format_summary_for_context(summary)}")
+    return "\n".join(context_parts)
+```
+
+# Test Strategy:
+**PREREQUISITE**: All tests depend on Task #16 completion (removal of keyword-based logic).
+
+1. **Semantic Summary Validation**: Test that LLM-based summarization captures actual user values ("1000 daily users", "$200/month budget") not just keyword presence. 2. **Context Relationship Understanding**: Verify agents understand semantic relationships between information from different pillars (e.g., "15 properties" relates to scale requirements). 3. **Value Preservation Through Context Chain**: Test that specific technical details ("2GB video files", "PostgreSQL database") flow correctly between agents with full semantic context. 4. **LLM-Based Follow-up Logic**: Ensure follow-up questions are based on semantic understanding of missing information, not keyword matching. 5. **End-to-End Context Flow**: Run complete interview simulations verifying rich contextual information flows without loss of meaning or detail. 6. **Regression Testing**: Test complex user descriptions to ensure LLM-based system captures nuanced information that keyword matching would miss.
+
+# Subtasks:
+## 1. Wait for Task #16 completion - Remove keyword-based architecture [pending]
+### Dependencies: None
+### Description: This subtask blocks all other work until Task #16 removes ALL keyword-based logic from the system and implements proper LLM-based information extraction
+### Details:
+Cannot proceed with context sharing fixes until the underlying keyword-based architecture is replaced with LLM-based semantic understanding. Task #16 must complete first.
+
+## 2. Implement semantic context passing in state_manager.py [pending]
+### Dependencies: None
+### Description: After Task #16, enhance build_system_prompt_context() to pass semantically rich structured data instead of JSON dumps, enabling proper LLM-based context understanding
+### Details:
+Replace JSON dump approach with structured formatting that preserves semantic meaning and relationships between information pieces, making context easily parseable by LLM agents
+
+## 3. Integrate SummarizerAgent with LLM-based workflow [pending]
+### Dependencies: None
+### Description: After Task #16, ensure all agents use the existing SummarizerAgent for semantic summarization instead of any remaining manual extraction methods
+### Details:
+Update main interview loop to consistently use SummarizerAgent.summarize_pillar() with LLM-based understanding, ensuring rich contextual summaries that capture actual user-provided values and relationships
+
+## 4. Implement semantic content validation [pending]
+### Dependencies: None
+### Description: Create validation logic that uses LLM understanding to verify summaries contain actual user-provided values and semantic relationships, not just keyword presence
+### Details:
+Develop LLM-based validation that checks if specific user responses and their semantic meaning are properly captured and available for context sharing between agents
+
+## 5. Create comprehensive semantic context flow tests [pending]
+### Dependencies: None
+### Description: Develop test cases that verify complex user information and relationships flow correctly through the LLM-based context sharing system with full semantic understanding
+### Details:
+Test scenarios with nuanced user descriptions, technical relationships, and complex requirements to ensure LLM-based context sharing preserves meaning and enables intelligent follow-up behavior
+

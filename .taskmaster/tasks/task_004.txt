@@ -1,0 +1,56 @@
+# Task ID: 4
+# Title: Implement Core Agent Base Class and Profiler Agent
+# Status: done
+# Dependencies: 2, 3
+# Priority: high
+# Description: Create the base agent class with common functionality and implement the Profiler Agent to assess user expertise and gather project context
+# Details:
+Create agents/base_agent.py:
+```python
+from abc import ABC, abstractmethod
+from typing import Dict, List
+
+class BaseAgent(ABC):
+    def __init__(self, name: str, topics: List[str], prompt: str):
+        self.name = name
+        self.topics = topics
+        self.prompt = prompt
+    
+    @abstractmethod
+    async def process_topic(self, topic: str, state: Dict, openai_client) -> Dict:
+        pass
+    
+    def needs_follow_up(self, user_answer: str) -> bool:
+        unclear_indicators = [
+            "what do you mean", "i don't understand", 
+            "can you explain", "i'm not sure", "maybe",
+            "i think", "possibly", "huh?", "?"
+        ]
+        answer_lower = user_answer.lower()
+        return any(indicator in answer_lower for indicator in unclear_indicators)
+```
+
+Implement agents/profiler.py:
+```python
+from .base_agent import BaseAgent
+from core.prompts import PROFILER_AGENT_PROMPT
+
+class ProfilerAgent(BaseAgent):
+    def __init__(self):
+        topics = [
+            "expertise_assessment",
+            "project_overview",
+            "project_scale",
+            "timeline"
+        ]
+        super().__init__("profiler", topics, PROFILER_AGENT_PROMPT)
+    
+    async def process_topic(self, topic: str, state: Dict, openai_client) -> Dict:
+        # Implementation for processing profiler topics
+        # Assess stated vs observed expertise
+        # Extract project type and domain
+        pass
+```
+
+# Test Strategy:
+Test expertise assessment logic, verify proper detection of technical sophistication from user responses, and ensure profile data is correctly stored in state.

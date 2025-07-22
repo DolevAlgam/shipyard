@@ -1,0 +1,49 @@
+# Task ID: 7
+# Title: Implement Document Generator and Feedback Interpreter
+# Status: done
+# Dependencies: 6
+# Priority: medium
+# Description: Create agents for generating the comprehensive infrastructure document and interpreting user feedback for revisions
+# Details:
+Implement agents/document_generator.py:
+```python
+from core.prompts import DOCUMENT_GENERATOR_PROMPT
+
+class DocumentGeneratorAgent:
+    def __init__(self):
+        self.sections = [
+            "Executive Summary",
+            "Architecture Overview",
+            "Compute Resources",
+            "Networking Configuration",
+            "Storage Solutions",
+            "Security Measures",
+            "Monitoring and Observability",
+            "Disaster Recovery Plan",
+            "CI/CD Pipeline",
+            "Cost Estimates",
+            "Implementation Timeline",
+            "Assumptions and Recommendations"
+        ]
+    
+    async def generate_document(self, state: Dict, openai_client) -> str:
+        # Compile all requirements and summaries
+        # Generate comprehensive markdown document
+        # Include mermaid diagrams where appropriate
+        pass
+```
+
+Implement agents/feedback_interpreter.py:
+```python
+class FeedbackInterpreterAgent:
+    async def interpret_feedback(self, feedback: str, 
+                                 current_doc: str, 
+                                 openai_client) -> Dict:
+        # Parse natural language feedback
+        # Identify specific sections to modify
+        # Return structured change requests
+        pass
+```
+
+# Test Strategy:
+Verify document includes all required sections, test feedback interpretation accuracy, and ensure document modifications are applied correctly.

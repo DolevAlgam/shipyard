@@ -1,0 +1,37 @@
+# Task ID: 6
+# Title: Create Best Practices and Summarizer Agents
+# Status: done
+# Dependencies: 4
+# Priority: medium
+# Description: Implement the Best Practices Agent to fill gaps with industry standards and the Summarizer Agent to extract key information after each pillar completes
+# Details:
+Implement agents/best_practices.py:
+```python
+from .base_agent import BaseAgent
+from core.prompts import BEST_PRACTICES_PROMPT, INFRASTRUCTURE_CHECKLIST
+
+class BestPracticesAgent(BaseAgent):
+    def __init__(self):
+        super().__init__("best_practices", [], BEST_PRACTICES_PROMPT)
+    
+    async def fill_gaps(self, state: Dict, openai_client) -> Dict:
+        # Review all requirements
+        # Identify missing items from INFRASTRUCTURE_CHECKLIST
+        # Add recommendations with [AI Recommendation: ...] notation
+        pass
+```
+
+Implement agents/summarizer.py:
+```python
+class SummarizerAgent:
+    async def summarize_pillar(self, pillar_name: str, 
+                               chat_history: List[Dict], 
+                               openai_client) -> Dict:
+        # Extract key information from conversation
+        # Return structured summary for the pillar
+        # Format depends on pillar type
+        pass
+```
+
+# Test Strategy:
+Test gap identification logic, verify AI recommendations are clearly marked, and ensure summaries accurately capture key information from conversations.

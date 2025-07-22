@@ -1,0 +1,368 @@
+# Task ID: 27
+# Title: Fix Agent Interview Flow to Prevent Premature Implementation Advice
+# Status: pending
+# Dependencies: 4, 5, 8, 16, 22
+# Priority: high
+# Description: Prevent agents from providing implementation details during the interview phase by implementing a recommendation-question pattern and auto-transition safety net to ensure proper conversation flow.
+# Details:
+**CRITICAL INTERVIEW FLOW ISSUE - AGENTS BREAKING INTERVIEW PROTOCOL**
+
+**ROOT CAUSE ANALYSIS**:
+Agents are violating the fundamental interview principle by:
+1. Providing consultative advice and implementation details during context gathering
+2. Misinterpreting short responses ("okay", "yes", "got it") as requests for more information
+3. Failing to recognize when to transition to the next pillar
+4. Mixing interview and recommendation phases
+
+**IMPLEMENTATION APPROACH**:
+
+**OPTION 1: Enhanced Agent Prompts with Recommendation-Question Pattern (Primary Fix)**
+
+**1. Update Agent Prompt Framework**:
+Modify `core/prompts.py` to implement recommendation-question pattern:
+```python
+RECOMMENDATION_QUESTION_FRAMEWORK = """
+CRITICAL INTERVIEW PROTOCOL:
+1. You are in the INTERVIEW PHASE - gather information through questions
+2. When discussing potential solutions, use the recommendation-question pattern:
+   - Instead of: "You should set up auto-scaling policies for ECS"
+   - Use: "Is automated scaling something you care about? If so, I can include ECS auto-scaling in your plan."
+3. Framework: "Is [recommendation] something you'd want to prioritize?" → [If yes, include in document]
+4. Always gauge user interest before making assumptions
+5. Every response MUST end with a question to maintain conversation flow
+
+EXAMPLES OF CORRECT PATTERNS:
+- "Is high availability a priority for you? I can include multi-AZ deployment strategies if needed."
+- "Would you like automated backup solutions included in your architecture?"
+- "Is cost optimization something we should prioritize in the recommendations?"
+
+FORBIDDEN PATTERNS:
+- Direct advice: "You should use AWS RDS..."
+- Assumptions: "For your needs, I'll recommend..."
+- Explanations: "This is how you configure..."
+"""
+
+# Prepend to all agent prompts
+PROFILER_AGENT_PROMPT = RECOMMENDATION_QUESTION_FRAMEWORK + PROFILER_AGENT_PROMPT
+BUSINESS_AGENT_PROMPT = RECOMMENDATION_QUESTION_FRAMEWORK + BUSINESS_AGENT_PROMPT
+APP_AGENT_PROMPT = RECOMMENDATION_QUESTION_FRAMEWORK + APP_AGENT_PROMPT
+TRIBAL_AGENT_PROMPT = RECOMMENDATION_QUESTION_FRAMEWORK + TRIBAL_AGENT_PROMPT
+```
+
+**OPTION 2B: Auto-Insert Transition Question (Safety Net)**
+
+**2. Create Lightweight Question Validator**:
+Create `core/question_validator.py`:
+```python
+import re
+from typing import Dict, Optional
+
+class QuestionValidator:
+    """Lightweight validator to ensure responses contain questions"""
+    
+    def __init__(self, openai_client):
+        self.openai_client = openai_client
+        self.question_indicators = ['?', 'would you', 'do you', 'can you', 
+                                   'is there', 'are there', 'what', 'how', 
+                                   'when', 'where', 'which']
+    
+    async def validate_has_question(self, response: str) -> bool:
+        """Quick check if response contains a question"""
+        # First do simple pattern matching for speed
+        response_lower = response.lower()
+        if '?' in response:
+            return True
+        
+        # If no obvious question mark, use GPT-4o for semantic check
+        prompt = f"""
+        Does this response contain a question asking for user input?
+        Response: "{response}"
+        
+        Answer with only YES or NO.
+        """
+        
+        result = await self.openai_client.chat.completions.create(
+            model="gpt-4o",  # Fast model for simple validation
+            messages=[{"role": "system", "content": prompt}],
+            max_tokens=10
+        )
+        
+        return result.choices[0].message.content.strip().upper() == "YES"
+    
+    def generate_transition_question(self, current_topic: str, next_topic: str) -> str:
+        """Generate appropriate transition question"""
+        return f"Is there anything else about {current_topic} you'd like to discuss, or should we move to {next_topic}?"
+```
+
+**3. Integrate Validator into Agent Base Class**:
+Modify `agents/base_agent.py`:
+```python
+from core.question_validator import QuestionValidator
+
+class BaseAgent(ABC):
+    def __init__(self, name: str, topics: List[str], prompt: str):
+        self.name = name
+        self.topics = topics
+        self.prompt = prompt
+        self.question_validator = None  # Initialized when OpenAI client available
+    
+    async def process_response(self, response: str, state: Dict, openai_client) -> str:
+        """Process agent response and ensure it contains a question"""
+        # Initialize validator if needed
+        if not self.question_validator:
+            self.question_validator = QuestionValidator(openai_client)
+        
+        # Check if response has a question
+        has_question = await self.question_validator.validate_has_question(response)
+        
+        if not has_question:
+            # Auto-append transition question
+            current_topic = state.get("current_topic", "this topic")
+            next_topic = self._get_next_topic(state) or "the next area"
+            
+            transition_q = self.question_validator.generate_transition_question(
+                current_topic, next_topic
+            )
+            
+            response = f"{response}\n\n{transition_q}"
+            
+            # Log for monitoring
+            logger.info(f"Auto-appended transition question for {self.name}")
+        
+        return response
+```
+
+**4. Update Main Orchestration Loop**:
+Modify `main.py` to use the new validation:
+```python
+async def run_interview():
+    # In the main conversation loop
+    while current_agent and not interview_complete:
+        # Get agent response
+        raw_response = await current_agent.generate_response(
+            state, openai_client
+        )
+        
+        # Process response to ensure it has a question
+        final_response = await current_agent.process_response(
+            raw_response, state, openai_client
+        )
+        
+        # Send to user
+        await send_to_user(final_response)
+        
+        # Handle user response and transitions
+        user_response = await get_user_response()
+        
+        # Check for natural transition based on user response
+        if should_transition(user_response, state):
+            current_agent = get_next_agent(state)
+```
+
+**5. Implement Smooth Transition Detection**:
+```python
+def should_transition(user_response: str, state: Dict) -> bool:
+    """Detect when user is ready to move on"""
+    # Short acknowledgments that indicate readiness to proceed
+    acknowledgments = [
+        "okay", "ok", "yes", "got it", "understood", 
+        "makes sense", "sure", "alright", "i see", "next",
+        "let's move on", "continue", "proceed"
+    ]
+    
+    response_lower = user_response.lower().strip()
+    
+    # Direct transition if user explicitly asks to move on
+    if any(ack in response_lower for ack in acknowledgments) and len(response_lower) < 20:
+        return True
+    
+    # Check if current topic has been sufficiently covered
+    topic_interactions = state.get("topic_interactions", {}).get(state["current_topic"], 0)
+    if topic_interactions >= 3 and len(response_lower) < 50:
+        return True
+    
+    return False
+```
+
+**6. Monitor and Log Pattern Usage**:
+Add monitoring to track when safety net activates:
+```python
+# In core/monitoring.py
+class InterviewFlowMonitor:
+    def __init__(self):
+        self.safety_net_activations = 0
+        self.total_responses = 0
+    
+    def log_response(self, had_question: bool, agent_name: str):
+        self.total_responses += 1
+        if not had_question:
+            self.safety_net_activations += 1
+            logger.warning(f"Safety net activated for {agent_name} - {self.safety_net_activations}/{self.total_responses}")
+    
+    def get_safety_net_rate(self) -> float:
+        if self.total_responses == 0:
+            return 0.0
+        return self.safety_net_activations / self.total_responses
+```
+
+# Test Strategy:
+**COMPREHENSIVE INTERVIEW FLOW TESTING WITH RECOMMENDATION-QUESTION PATTERN**:
+
+**1. Recommendation-Question Pattern Testing**:
+- Test agent responses for proper pattern usage:
+  - Input: "I need high availability"
+  - Expected: "Is 99.99% uptime something you'd want to prioritize? I can include multi-AZ strategies if needed."
+  - NOT: "You should implement multi-AZ deployment with RDS..."
+- Verify all agents follow the pattern consistently
+- Test edge cases where recommendations might naturally arise
+
+**2. Auto-Transition Safety Net Testing**:
+- Test responses without questions trigger safety net:
+  - Agent response: "I understand your requirements."
+  - Expected auto-append: "Is there anything else about [topic] you'd like to discuss, or should we move to [next]?"
+- Verify safety net activation rate stays below 10% in normal conversations
+- Test GPT-4o validation speed (should be <500ms)
+
+**3. Acknowledgment Response Testing**:
+- Test with various acknowledgment phrases: "okay", "yes", "got it", "understood"
+- Verify smooth transitions without repetitive questioning
+- Test compound acknowledgments: "okay, let's continue" → should transition
+- Test false positives: "okay, but I also need..." → should NOT transition
+
+**4. Question Presence Validation**:
+- Test validator correctly identifies questions:
+  - "What's your budget range?" → YES
+  - "Is scalability important to you?" → YES
+  - "I understand your needs." → NO
+  - "That makes sense. Would you like to add more details?" → YES
+- Test semantic question detection without question marks
+
+**5. End-to-End Flow Testing**:
+- Run complete interview with recommendation-question pattern
+- Verify no implementation details leak into interview phase
+- Confirm all user interests are properly gauged
+- Test that document generation includes only confirmed priorities
+
+**6. Pattern Consistency Testing**:
+- Verify all agents consistently use the pattern
+- Test pattern works across different topics:
+  - Technical: "Is containerization something you'd want to explore?"
+  - Business: "Would 24/7 support be a priority for your team?"
+  - Organizational: "Is having a dedicated DevOps team feasible?"
+
+**7. Transition Smoothness Testing**:
+- Test natural flow between topics and pillars
+- Verify transition questions are contextually appropriate
+- Test no jarring jumps between subjects
+- Confirm state properly tracks covered topics
+
+**8. Edge Case Testing**:
+- User asks "What would you recommend?" during interview
+- Expected: "I'll provide detailed recommendations after understanding all your needs. Is [specific aspect] something you'd want me to prioritize?"
+- Test interruption scenarios
+- Test very short user responses
+
+**9. Performance Testing**:
+- Measure response time with validator (target <500ms overhead)
+- Test concurrent interviews maintain proper flow
+- Verify no memory leaks in validator
+- Monitor safety net activation rates
+
+**10. Regression Testing**:
+- Verify fix doesn't break existing context sharing (Task 11)
+- Ensure LLM-first approach is maintained (Task 16)
+- Confirm state management works properly (Task 2)
+- Test orchestration loop handles new flow correctly (Task 8)
+
+**11. User Experience Testing**:
+- Conduct user testing to verify natural conversation flow
+- Test that recommendation-questions feel consultative, not pushy
+- Verify users understand they're being asked about priorities
+- Confirm final document reflects only discussed priorities
+
+**12. Monitoring and Metrics Testing**:
+- Verify safety net activation tracking works
+- Test logging captures all validation events
+- Confirm metrics help identify agents needing prompt improvements
+- Test alert thresholds for high safety net usage
+
+# Subtasks:
+## 1. Update agent prompts with recommendation-question pattern [done]
+### Dependencies: None
+### Description: Modify all agent prompts to use the recommendation-question framework instead of direct advice
+### Details:
+<info added on 2025-07-13T03:50:00.850Z>
+The lightweight question validator has been designed to automatically detect and flag responses that violate the recommendation-question framework. The validator will be integrated into the agent response pipeline to ensure all interactive agents maintain proper interview protocol.
+
+**Validator Implementation Plan:**
+
+The validator will check each agent response for:
+- Presence of implementation details or direct advice
+- Proper recommendation-question pattern usage
+- Response ending with a question
+- Absence of forbidden patterns like "You should", "I recommend", or "Here's how to"
+
+**Key Validation Rules:**
+1. Must detect direct advice patterns: "You should", "You need to", "I recommend", "Here's how"
+2. Must verify recommendation-question format: "Is [feature] something you'd want to prioritize?"
+3. Must ensure response ends with a question mark
+4. Must flag responses containing implementation details during interview phase
+5. Must allow transition phrases when user explicitly requests next topic
+
+**Integration Points:**
+- Will be called after each agent generates a response but before returning to user
+- Will log violations for monitoring and debugging
+- Can optionally reformat responses to comply with framework
+- Will track violation patterns to identify agents needing prompt refinement
+
+**Expected Impact:**
+This validator will serve as a safety net to catch any responses that slip through despite the updated prompts, ensuring consistent interview behavior across all agents and preventing premature implementation advice.
+</info added on 2025-07-13T03:50:00.850Z>
+<info added on 2025-07-13T03:56:25.777Z>
+**Response Format Fix Applied to Validator**
+
+The validator has been updated to detect and flag the robotic quoted dialogue formatting issue discovered during testing. This ensures agents communicate naturally without wrapping their responses in quotes.
+
+**New Validation Rule Added:**
+- Must detect quoted dialogue patterns: responses starting/ending with quotation marks
+- Must flag responses formatted as script dialogue
+- Must ensure natural conversational tone without quote wrapping
+
+**Examples of What Validator Will Flag:**
+- ❌ "Could you share your experience level with cloud infrastructure?"
+- ❌ 'What kind of database are you planning to use?'
+- ❌ "I understand. Let me ask you about..."
+
+**Expected Natural Format:**
+- ✅ Could you share your experience level with cloud infrastructure?
+- ✅ What kind of database are you planning to use?
+- ✅ I understand. Let me ask you about...
+
+**Implementation Note:**
+Since the RECOMMENDATION_QUESTION_FRAMEWORK now includes explicit response format instructions preventing quoted dialogue, the validator serves as an additional safety check to catch any responses that might still slip through with this formatting issue.
+</info added on 2025-07-13T03:56:25.777Z>
+
+## 2. Implement lightweight question validator [in-progress]
+### Dependencies: None
+### Description: Create validator using GPT-4o to check if responses contain questions
+### Details:
+
+
+## 3. Integrate auto-transition safety net [pending]
+### Dependencies: None
+### Description: Add logic to auto-append transition questions when agents fail to include questions
+### Details:
+
+
+## 4. Update transition detection logic [pending]
+### Dependencies: None
+### Description: Implement improved logic to detect when users are ready to move to next topic
+### Details:
+
+
+## 5. Add monitoring for safety net activations [pending]
+### Dependencies: None
+### Description: Track when safety net is triggered to identify agents needing prompt improvements
+### Details:
+
+

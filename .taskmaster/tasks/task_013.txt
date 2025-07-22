@@ -1,0 +1,82 @@
+# Task ID: 13
+# Title: Fix Document Generation Accuracy
+# Status: pending
+# Dependencies: 7, 12
+# Priority: high
+# Description: Fix the DocumentGeneratorAgent to properly parse user requirements and generate specific, relevant recommendations that accurately reflect the user's chosen technology stack and constraints.
+# Details:
+Based on root cause analysis, fix specific bugs in the DocumentGeneratorAgent causing generic/inaccurate recommendations:
+
+**Bug #1: Generic Infrastructure Checklist Without Context Awareness**
+- Location: `core/prompts.py` - INFRASTRUCTURE_CHECKLIST & DOCUMENT_GENERATOR_PROMPT
+- Fix: Replace one-size-fits-all infrastructure checklist with platform-aware logic
+- Remove VPC/load balancer suggestions for Railway/Vercel users
+
+**Bug #2: Poor Context Utilization in Document Generation**
+- Location: `agents/document_generator.py` line 50+
+- Fix: Replace JSON dumps context passing with structured, AI-friendly format
+- Improve `generate_document()` method to extract specific user requirements
+
+**Bug #3: No Technology-Specific Logic**
+- Location: `core/prompts.py` - DOCUMENT_GENERATOR_PROMPT
+- Fix: Add explicit instructions to analyze user's actual tech stack
+- Exclude irrelevant platform recommendations (e.g., AWS services for Railway users)
+
+**Bug #4: Missing User Validation Against Generic Recommendations**
+- Location: `agents/document_generator.py`
+- Fix: Add filtering logic to remove recommendations contradicting user's stated preferences
+- Validate all suggestions against user's current setup
+
+**Bug #5: Insufficient Prompt Engineering for Specificity**
+- Location: `core/prompts.py` - DOCUMENT_GENERATOR_PROMPT
+- Fix: Enhance prompt to emphasize using ONLY user's actual requirements
+- Avoid platform-specific recommendations for unused platforms
+
+**Specific Implementation Tasks**:
+1. Add platform-aware document generation logic
+2. Implement technology filtering to exclude irrelevant services
+3. Create structured context parsing instead of JSON dumps
+4. Add user requirement validation layer
+5. Enhance prompt engineering for specificity
+6. Implement section-specific context passing
+
+# Test Strategy:
+1. **Bug Reproduction Testing**: Create test cases that reproduce the identified bugs (Railway user getting AWS VPC suggestions) and verify fixes eliminate these issues. 2. **Platform-Specific Validation**: Test with Railway+Vercel, AWS, Azure combinations to ensure only relevant recommendations appear. 3. **Context Parsing Accuracy**: Verify the new structured context format correctly extracts user requirements without information loss. 4. **Negative Testing**: Ensure inappropriate suggestions are completely filtered out before document generation. 5. **End-to-End Accuracy**: Run complete flows and verify generated documents contain only user-relevant, platform-appropriate recommendations. 6. **Regression Testing**: Ensure fixes don't break existing functionality for users with traditional cloud setups.
+
+# Subtasks:
+## 1. Fix Generic Infrastructure Checklist Bug [pending]
+### Dependencies: None
+### Description: Replace the one-size-fits-all INFRASTRUCTURE_CHECKLIST in core/prompts.py with platform-aware logic that excludes irrelevant components like VPCs for Railway/Vercel users
+### Details:
+
+
+## 2. Improve Context Utilization in Document Generation [pending]
+### Dependencies: None
+### Description: Fix the generate_document() method in agents/document_generator.py to replace JSON dumps with structured, AI-friendly context format for better requirement extraction
+### Details:
+
+
+## 3. Add Technology-Specific Filtering Logic [pending]
+### Dependencies: None
+### Description: Implement logic in document generator to analyze user's actual tech stack and automatically exclude platform-specific recommendations for unused platforms
+### Details:
+
+
+## 4. Implement User Requirement Validation Layer [pending]
+### Dependencies: None
+### Description: Add validation logic in agents/document_generator.py to filter out recommendations that contradict user's stated preferences before document finalization
+### Details:
+
+
+## 5. Enhanced Prompt Engineering for Specificity [pending]
+### Dependencies: None
+### Description: Update DOCUMENT_GENERATOR_PROMPT in core/prompts.py to explicitly instruct AI to focus ONLY on user's stated requirements and avoid generic platform recommendations
+### Details:
+
+
+## 6. Implement Section-Specific Context Passing [pending]
+### Dependencies: None
+### Description: Replace broad context passing with targeted information delivery to each document section to improve relevance and reduce generic recommendations
+### Details:
+
+

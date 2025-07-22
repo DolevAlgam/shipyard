@@ -1,0 +1,316 @@
+# Task ID: 20
+# Title: Fix Agent Role Boundary Violations and Premature Solution Giving
+# Status: pending
+# Dependencies: 4, 5, 6
+# Priority: high
+# Description: Implement strict role boundary enforcement for all information-gathering agents by adding explicit constraints to prevent them from providing solutions, recommendations, or implementation advice. Only the DocumentGeneratorAgent should provide solutions.
+# Details:
+**CRITICAL ARCHITECTURAL FIX: AGENT ROLE BOUNDARY ENFORCEMENT**
+
+This task addresses a fundamental violation of the agent role separation principle where information-gathering agents are providing complete infrastructure solutions instead of staying within their designated roles.
+
+**ROOT CAUSE ANALYSIS**:
+The ProfilerAgent and other information-gathering agents lack explicit constraints in their prompts to prevent solution-giving behavior. This causes role confusion and premature solutioning before all requirements are gathered.
+
+**IMPLEMENTATION PLAN**:
+
+**1. Update ProfilerAgent Prompt (HIGHEST PRIORITY)**:
+```python
+# In core/prompts.py - Update PROFILER_AGENT_PROMPT
+PROFILER_AGENT_PROMPT = """You are the ProfilerAgent responsible for understanding the user's project and expertise level.
+
+CRITICAL CONSTRAINTS:
+- You MUST ONLY gather information about the user's project, expertise, and context
+- DO NOT provide solutions, recommendations, or implementation advice
+- DO NOT suggest technologies, architectures, or infrastructure approaches
+- DO NOT give any technical guidance or best practices
+- If the user asks for solutions, politely redirect: "I'm currently gathering information about your project. We'll provide detailed recommendations after understanding all your requirements."
+
+Your role is strictly limited to:
+1. Understanding the project description and goals
+2. Assessing the user's technical expertise level
+3. Gathering context about existing infrastructure
+4. Identifying project constraints and requirements
+
+[Rest of existing prompt...]
+"""
+```
+
+**2. Update BusinessAgent Prompt**:
+```python
+# In core/prompts.py - Update BUSINESS_AGENT_PROMPT
+BUSINESS_AGENT_PROMPT = """You are the BusinessAgent responsible for gathering business requirements.
+
+CRITICAL CONSTRAINTS:
+- You MUST ONLY gather information about business needs and requirements
+- DO NOT provide solutions, recommendations, or implementation advice
+- DO NOT suggest specific technologies or architectural patterns
+- DO NOT give cost estimates or performance recommendations
+- If asked for solutions, respond: "I'm focused on understanding your business requirements. Our system will provide comprehensive recommendations after gathering all necessary information."
+
+Your role is strictly limited to:
+1. Understanding user base and traffic patterns
+2. Gathering availability and reliability requirements
+3. Identifying business constraints and compliance needs
+4. Collecting information about growth projections
+
+[Rest of existing prompt...]
+"""
+```
+
+**3. Update AppAgent Prompt**:
+```python
+# In core/prompts.py - Update APP_AGENT_PROMPT
+APP_AGENT_PROMPT = """You are the AppAgent responsible for gathering application requirements.
+
+CRITICAL CONSTRAINTS:
+- You MUST ONLY gather information about application needs
+- DO NOT provide solutions, recommendations, or implementation advice
+- DO NOT suggest frameworks, databases, or deployment strategies
+- DO NOT give architectural guidance or best practices
+- If asked for solutions, respond: "I'm currently gathering information about your application requirements. Detailed technical recommendations will be provided after all requirements are collected."
+
+Your role is strictly limited to:
+1. Understanding application type and functionality
+2. Gathering data storage and processing needs
+3. Identifying integration requirements
+4. Collecting information about performance expectations
+
+[Rest of existing prompt...]
+"""
+```
+
+**4. Update TribalKnowledgeAgent Prompt**:
+```python
+# In core/prompts.py - Update TRIBAL_KNOWLEDGE_AGENT_PROMPT
+TRIBAL_KNOWLEDGE_AGENT_PROMPT = """You are the TribalKnowledgeAgent responsible for gathering organizational constraints.
+
+CRITICAL CONSTRAINTS:
+- You MUST ONLY gather information about organizational preferences and constraints
+- DO NOT provide solutions, recommendations, or implementation advice
+- DO NOT suggest tools, platforms, or methodologies
+- DO NOT give opinions on technology choices
+- If asked for solutions, respond: "I'm gathering information about your organization's constraints. Solutions will be provided after understanding all requirements."
+
+Your role is strictly limited to:
+1. Understanding team expertise and preferences
+2. Gathering budget and timeline constraints
+3. Identifying existing tools and platforms
+4. Collecting compliance and security requirements
+
+[Rest of existing prompt...]
+"""
+```
+
+**5. Create Role Boundary Validation Utility**:
+```python
+# Create utils/role_boundary_validator.py
+import re
+from typing import List, Tuple
+
+class RoleBoundaryValidator:
+    """Validates that agent responses don't violate role boundaries"""
+    
+    # Solution-indicating patterns
+    SOLUTION_PATTERNS = [
+        r'\b(recommend|suggest|should use|consider using|best practice|solution|approach)\b',
+        r'\b(AWS|Azure|GCP|Kubernetes|Docker|Terraform)\b.*\b(would be|is ideal|works well)\b',
+        r'\b(you (should|could|might want to)|I (recommend|suggest))\b',
+        r'\b(architecture|design|implementation|deployment)\s+(would|should|could)\b',
+        r'\b(cost.*estimate|performance.*recommendation|security.*suggestion)\b'
+    ]
+    
+    @classmethod
+    def validate_response(cls, response: str, agent_type: str) -> Tuple[bool, List[str]]:
+        """
+        Validates that response doesn't contain solutions for info-gathering agents
+        Returns: (is_valid, list_of_violations)
+        """
+        if agent_type == "document_generator":
+            return True, []  # DocumentGeneratorAgent is allowed to give solutions
+        
+        violations = []
+        for pattern in cls.SOLUTION_PATTERNS:
+            matches = re.findall(pattern, response, re.IGNORECASE)
+            if matches:
+                violations.extend(matches)
+        
+        return len(violations) == 0, violations
+    
+    @classmethod
+    def create_violation_report(cls, agent_type: str, response: str, violations: List[str]) -> str:
+        """Creates a detailed violation report for logging"""
+        return f"""
+ROLE BOUNDARY VIOLATION DETECTED
+Agent Type: {agent_type}
+Violations Found: {len(violations)}
+Violation Patterns: {', '.join(set(violations))}
+Response Preview: {response[:200]}...
+"""
+```
+
+**6. Integrate Validation into BaseAgent**:
+```python
+# In agents/base_agent.py - Add validation after LLM response
+from utils.role_boundary_validator import RoleBoundaryValidator
+
+class BaseAgent:
+    async def process_message(self, message: str, state: Dict, openai_client) -> str:
+        # Existing LLM call logic...
+        response = await openai_client.create_completion(messages)
+        
+        # Validate role boundaries
+        is_valid, violations = RoleBoundaryValidator.validate_response(
+            response, 
+            self.agent_type
+        )
+        
+        if not is_valid:
+            # Log violation for monitoring
+            logger.warning(RoleBoundaryValidator.create_violation_report(
+                self.agent_type, 
+                response, 
+                violations
+            ))
+            
+            # Request regeneration with stronger constraints
+            messages.append({
+                "role": "system",
+                "content": "CRITICAL: Your response violated role boundaries by providing solutions. You must ONLY gather information. Regenerate your response without any recommendations or solutions."
+            })
+            response = await openai_client.create_completion(messages)
+        
+        return response
+```
+
+**7. Add Monitoring and Alerting**:
+```python
+# In core/monitoring.py
+class RoleBoundaryMonitor:
+    """Tracks and reports role boundary violations"""
+    
+    def __init__(self):
+        self.violations = []
+    
+    def record_violation(self, agent_type: str, violation_details: dict):
+        self.violations.append({
+            "timestamp": datetime.now(),
+            "agent_type": agent_type,
+            "details": violation_details
+        })
+        
+        # Alert if violations exceed threshold
+        recent_violations = [v for v in self.violations 
+                           if v["timestamp"] > datetime.now() - timedelta(minutes=5)]
+        if len(recent_violations) > 3:
+            self.send_alert(f"High rate of role boundary violations: {len(recent_violations)} in last 5 minutes")
+```
+
+**8. Update System Prompts for Clarity**:
+```python
+# Add to core/prompts.py
+ROLE_BOUNDARY_REMINDER = """
+REMEMBER YOUR ROLE BOUNDARIES:
+- ProfilerAgent: ONLY gather project information
+- BusinessAgent: ONLY gather business requirements  
+- AppAgent: ONLY gather application requirements
+- TribalKnowledgeAgent: ONLY gather organizational constraints
+- BestPracticesAgent: ONLY identify gaps in requirements
+- DocumentGeneratorAgent: ONLY this agent provides solutions
+
+If you're not the DocumentGeneratorAgent, you MUST NOT provide any solutions, recommendations, or implementation advice.
+"""
+```
+
+**CRITICAL IMPLEMENTATION NOTES**:
+1. This fix must be deployed immediately as it affects core system behavior
+2. All existing prompts must be audited for solution-giving language
+3. The validation system should be active but not block responses initially (log-only mode)
+4. After validation, gradually move to enforcement mode
+5. Monitor violation rates to ensure agents adapt to new constraints
+
+# Test Strategy:
+**COMPREHENSIVE TESTING STRATEGY FOR ROLE BOUNDARY ENFORCEMENT**:
+
+**1. Prompt Constraint Verification**:
+- Verify all information-gathering agent prompts contain explicit "DO NOT provide solutions" constraints
+- Check that constraints are clear, unambiguous, and prominently placed
+- Ensure each agent type has role-specific constraint language
+
+**2. Role Boundary Violation Detection Testing**:
+```python
+# Test cases for RoleBoundaryValidator
+test_violations = [
+    ("I recommend using AWS Lambda for this", ["recommend", "AWS"]),
+    ("You should consider Kubernetes", ["should", "consider"]),
+    ("The best practice is to use Docker", ["best practice", "Docker"]),
+    ("Azure would be ideal for your needs", ["Azure", "would be"]),
+    ("For cost optimization, I suggest using spot instances", ["suggest"])
+]
+
+# Test that ProfilerAgent responses are caught
+profiler_response = "Based on your requirements, I recommend using AWS with Kubernetes"
+is_valid, violations = RoleBoundaryValidator.validate_response(profiler_response, "profiler")
+assert not is_valid
+assert len(violations) > 0
+```
+
+**3. Agent Behavior Testing**:
+- Create test scenarios where users explicitly ask for solutions during information gathering
+- Verify agents redirect appropriately: "I'm currently gathering information..."
+- Test that agents maintain conversation flow while avoiding solutions
+
+**4. End-to-End Violation Testing**:
+```python
+# Simulate conversation that triggers violations
+test_conversation = {
+    "profiler": [
+        "What technology stack should I use?",
+        "Can you recommend a database?",
+        "What's the best cloud provider?"
+    ],
+    "business": [
+        "How should I architect for high availability?",
+        "What's the recommended scaling strategy?"
+    ]
+}
+
+# Each should result in information gathering, not solutions
+for agent_type, questions in test_conversation.items():
+    for question in questions:
+        response = await agent.process_message(question, state, openai_client)
+        is_valid, _ = RoleBoundaryValidator.validate_response(response, agent_type)
+        assert is_valid, f"{agent_type} provided solutions for: {question}"
+```
+
+**5. Validation System Testing**:
+- Test pattern matching for all solution-indicating patterns
+- Verify DocumentGeneratorAgent is exempt from validation
+- Test violation logging and reporting functionality
+- Ensure validation doesn't break normal conversation flow
+
+**6. Regeneration Testing**:
+- Test that when violations are detected, the system requests regeneration
+- Verify regenerated responses comply with role boundaries
+- Test that multiple regeneration attempts are handled gracefully
+
+**7. Monitoring and Alerting Testing**:
+- Verify violations are properly logged with full context
+- Test threshold-based alerting (e.g., >3 violations in 5 minutes)
+- Ensure monitoring doesn't impact system performance
+
+**8. Integration Testing**:
+- Run full interview flows with aggressive solution-seeking users
+- Verify all agents maintain role boundaries throughout
+- Test that final document generation still provides comprehensive solutions
+- Ensure role boundaries don't prevent proper information gathering
+
+**9. Regression Testing**:
+- Create test suite that runs after each prompt update
+- Automated checks for solution-giving language in prompts
+- Verify no reintroduction of solution patterns in agent responses
+
+**10. Performance Testing**:
+- Measure impact of validation on response times
+- Test system behavior under high violation rates
+- Verify validation doesn't cause infinite regeneration loops

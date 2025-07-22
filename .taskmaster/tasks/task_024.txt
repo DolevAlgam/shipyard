@@ -1,0 +1,271 @@
+# Task ID: 24
+# Title: Add Visual Separators Between User Answers and Agent Questions
+# Status: pending
+# Dependencies: 8, 9, 21
+# Priority: medium
+# Description: Implement clear visual separators between user answers and agent follow-up questions to improve readability and conversation flow, making it easier for users to distinguish between their responses and new questions from the agent.
+# Details:
+**IMPLEMENT VISUAL CONVERSATION FLOW SEPARATORS**
+
+**PROBLEM ANALYSIS**:
+Currently, when a user provides an answer and the agent immediately asks the next question, there's no visual distinction between these elements, creating a wall of text that's difficult to parse and follow.
+
+**IMPLEMENTATION APPROACH**:
+
+**1. Create Visual Separator Component** (`ui/components/conversation_separator.py`):
+```python
+from rich.console import Console
+from rich.panel import Panel
+from rich.rule import Rule
+from rich.text import Text
+from typing import Optional, Literal
+
+class ConversationSeparator:
+    def __init__(self, console: Console):
+        self.console = console
+        
+    def user_response_separator(self):
+        """Display separator after user provides an answer"""
+        self.console.print()  # Add blank line
+        self.console.print(Rule("", style="dim cyan"))
+        self.console.print()  # Add blank line after
+        
+    def agent_question_separator(self):
+        """Display separator before agent asks new question"""
+        self.console.print()  # Add blank line
+        self.console.print(Text("→ Next Question", style="bold blue"))
+        self.console.print()  # Add blank line after
+        
+    def section_transition(self, from_section: str, to_section: str):
+        """Display major section transition"""
+        self.console.print()
+        self.console.print(Panel(
+            f"[green]✓[/green] Completed: {from_section}\n"
+            f"[blue]→[/blue] Moving to: {to_section}",
+            style="bold",
+            border_style="green"
+        ))
+        self.console.print()
+```
+
+**2. Integrate Separators into Agent Base Class** (`agents/base_agent.py`):
+```python
+# Add to BaseAgent class
+from ui.components.conversation_separator import ConversationSeparator
+
+class BaseAgent:
+    def __init__(self, console: Console):
+        self.console = console
+        self.separator = ConversationSeparator(console)
+        # ... existing init code
+        
+    def ask_question(self, question: str, context: Optional[Dict] = None):
+        """Enhanced question asking with visual separation"""
+        # If this is not the first question, add separator
+        if hasattr(self, '_has_asked_question'):
+            self.separator.agent_question_separator()
+        
+        self._has_asked_question = True
+        
+        # Display the question with proper formatting
+        self.console.print(Panel(
+            question,
+            title="[bold cyan]Question[/bold cyan]",
+            border_style="cyan",
+            padding=(1, 2)
+        ))
+        
+        # Get user response
+        response = self.console.input("\n[bold yellow]Your answer:[/bold yellow] ")
+        
+        # Add separator after user response
+        self.separator.user_response_separator()
+        
+        return response
+```
+
+**3. Update Main Interview Loop** (`core/interview_manager.py`):
+```python
+def transition_between_agents(self, from_agent: str, to_agent: str):
+    """Handle visual transition between agent sections"""
+    if from_agent and to_agent:
+        self.separator.section_transition(
+            from_section=self.agent_display_names[from_agent],
+            to_section=self.agent_display_names[to_agent]
+        )
+```
+
+**4. Enhance Console Output Formatting** (`ui/console_manager.py`):
+```python
+class ConsoleManager:
+    def __init__(self):
+        self.console = Console()
+        self.separator = ConversationSeparator(self.console)
+        
+    def format_agent_response(self, response: str, agent_name: str):
+        """Format agent responses with clear visual boundaries"""
+        # For informational responses (not questions)
+        self.console.print(Panel(
+            response,
+            title=f"[bold green]{agent_name}[/bold green]",
+            border_style="green",
+            padding=(1, 2)
+        ))
+        
+    def format_user_input_prompt(self, prompt: str) -> str:
+        """Format input prompts with consistent styling"""
+        return f"\n[bold yellow]{prompt}[/bold yellow] "
+```
+
+**5. Add Configuration for Separator Styles** (`config/ui_settings.py`):
+```python
+UI_SETTINGS = {
+    "separators": {
+        "user_response": {
+            "style": "dim cyan",
+            "character": "─",
+            "padding_lines": 1
+        },
+        "agent_question": {
+            "style": "bold blue",
+            "prefix": "→",
+            "text": "Next Question",
+            "padding_lines": 1
+        },
+        "section_transition": {
+            "border_style": "green",
+            "completed_icon": "✓",
+            "next_icon": "→"
+        }
+    },
+    "panels": {
+        "question": {
+            "title_style": "bold cyan",
+            "border_style": "cyan",
+            "padding": (1, 2)
+        },
+        "response": {
+            "title_style": "bold green",
+            "border_style": "green",
+            "padding": (1, 2)
+        }
+    }
+}
+```
+
+**6. Add Accessibility Considerations**:
+```python
+def get_separator_for_mode(mode: str = "visual") -> str:
+    """Return appropriate separator based on display mode"""
+    if mode == "screen_reader":
+        return "\n--- End of user response. Beginning of next question ---\n"
+    elif mode == "minimal":
+        return "\n---\n"
+    else:  # visual mode
+        return Rule("", style="dim cyan")
+```
+
+**VISUAL EXAMPLES**:
+
+**Before Implementation**:
+```
+What is your role in the project?
+I'm the lead developer
+What technologies are you familiar with?
+Python, Docker, Kubernetes
+```
+
+**After Implementation**:
+```
+┌─ Question ────────────────────────────────┐
+│                                           │
+│  What is your role in the project?        │
+│                                           │
+└───────────────────────────────────────────┘
+
+Your answer: I'm the lead developer
+
+────────────────────────────────────────────
+
+→ Next Question
+
+┌─ Question ────────────────────────────────┐
+│                                           │
+│  What technologies are you familiar with? │
+│                                           │
+└───────────────────────────────────────────┘
+
+Your answer: Python, Docker, Kubernetes
+
+────────────────────────────────────────────
+```
+
+# Test Strategy:
+**COMPREHENSIVE VISUAL SEPARATOR TESTING STRATEGY**:
+
+**1. Visual Separator Component Testing**:
+- Test `ConversationSeparator` initialization with valid Console object
+- Verify `user_response_separator()` outputs correct spacing and rule style
+- Test `agent_question_separator()` displays "→ Next Question" with proper formatting
+- Validate `section_transition()` creates proper panel with both from/to sections
+- Test all methods handle edge cases (empty strings, None values)
+
+**2. Agent Integration Testing**:
+- Verify BaseAgent properly initializes ConversationSeparator
+- Test that first question doesn't show separator (no `_has_asked_question` flag)
+- Confirm subsequent questions show agent_question_separator
+- Validate user responses trigger user_response_separator after input
+- Test question panels render with correct title, border, and padding
+
+**3. Visual Flow Testing**:
+- Start interview and verify no separator before first question
+- Answer first question and confirm user_response_separator appears
+- Verify agent_question_separator appears before second question
+- Test section transitions show proper completion/next section panel
+- Validate consistent spacing throughout entire interview flow
+
+**4. Console Output Testing**:
+- Test Panel rendering with various content lengths
+- Verify Rule components display with correct style ("dim cyan")
+- Test Text components with style attributes ("bold blue")
+- Validate padding and spacing matches configuration
+- Test with different terminal widths (80, 120, 160 chars)
+
+**5. Configuration Testing**:
+- Verify UI_SETTINGS properly loaded and applied
+- Test style customization (change colors, characters, padding)
+- Validate all configurable elements can be modified
+- Test fallback behavior if configuration missing
+
+**6. Accessibility Testing**:
+- Test screen reader mode returns text-based separators
+- Verify minimal mode uses simple separators
+- Test visual mode with different color schemes
+- Validate separators don't break copy/paste functionality
+
+**7. Edge Case Testing**:
+- Test with very long user responses (multi-line)
+- Test with empty user responses
+- Test rapid question/answer sequences
+- Test with special characters in responses
+- Verify separators work with Unicode content
+
+**8. Performance Testing**:
+- Measure rendering time for separators
+- Test with 100+ question/answer pairs
+- Verify no memory leaks from separator objects
+- Test console buffer handling with many separators
+
+**9. Integration Testing**:
+- Test with all agent types (Profiler, Business, Technical, etc.)
+- Verify separators work with error messages
+- Test with clarification questions
+- Validate separators during agent handoffs
+- Test with summary displays
+
+**10. User Experience Testing**:
+- Conduct user testing to verify improved readability
+- Measure time to locate questions vs answers
+- Test with users of different experience levels
+- Gather feedback on separator visibility and effectiveness
+- A/B test different separator styles

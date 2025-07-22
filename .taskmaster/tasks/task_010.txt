@@ -1,0 +1,81 @@
+# Task ID: 10
+# Title: Implement Review Loop and Document Finalization
+# Status: done
+# Dependencies: 9
+# Priority: medium
+# Description: Create the review loop functionality that presents the generated document to users, accepts feedback, applies revisions, and produces the final infrastructure plan
+# Details:
+Implement review loop functionality:
+```python
+async def review_loop(initial_doc: str, state_manager, openai_client):
+    feedback_agent = FeedbackInterpreterAgent()
+    doc_generator = DocumentGeneratorAgent()
+    console = ConsoleInterface()
+    
+    current_doc = initial_doc
+    max_revisions = 3
+    revision_count = 0
+    
+    while revision_count < max_revisions:
+        # Display document sections
+        sections = parse_document_sections(current_doc)
+        for section_name, content in sections.items():
+            console.display_document_section(section_name, content)
+            
+            # Ask if user wants to see next section
+            if not await console.confirm_action("Continue to next section?"):
+                break
+        
+        # Get feedback
+        satisfied = await console.confirm_action(
+            "Are you satisfied with the infrastructure plan?"
+        )
+        
+        if satisfied:
+            return current_doc
+        
+        # Get revision requests
+        feedback = await console.get_user_input(
+            "What would you like to change? (Be specific about which sections)"
+        )
+        
+        # Interpret feedback
+        changes = await feedback_agent.interpret_feedback(
+            feedback, current_doc, openai_client
+        )
+        
+        # Apply changes
+        state_manager.state['revision_requests'] = changes
+        current_doc = await doc_generator.generate_document(
+            state_manager.state, openai_client
+        )
+        
+        revision_count += 1
+        print(f"\nRevision {revision_count} complete.")
+    
+    print("\nMaximum revisions reached. Finalizing document...")
+    return current_doc
+
+def parse_document_sections(markdown_doc: str) -> Dict[str, str]:
+    # Parse markdown document into sections
+    sections = {}
+    current_section = None
+    current_content = []
+    
+    for line in markdown_doc.split('\n'):
+        if line.startswith('# '):
+            if current_section:
+                sections[current_section] = '\n'.join(current_content)
+            current_section = line[2:]
+            current_content = []
+        else:
+            current_content.append(line)
+    
+    if current_section:
+        sections[current_section] = '\n'.join(current_content)
+    
+    return sections
+```
+
+# Test Strategy:
+Test review loop with various user feedback scenarios, verify document parsing works correctly, test revision limit enforcement, and ensure changes are properly applied to the document.

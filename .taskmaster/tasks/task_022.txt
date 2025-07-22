@@ -1,0 +1,301 @@
+# Task ID: 22
+# Title: Implement Context Understanding and Disambiguation System
+# Status: pending
+# Dependencies: 2, 3, 5, 18
+# Priority: high
+# Description: Create a sophisticated context analysis system that understands user intent beyond literal word matching, considering conversation flow, user expertise level, and semantic meaning to properly disambiguate ambiguous user responses and prevent misinterpretation of context.
+# Details:
+**CONTEXT UNDERSTANDING AND DISAMBIGUATION SYSTEM**:
+
+**1. Context Analysis Engine**:
+Create `core/context_analyzer.py`:
+```python
+import re
+from typing import Dict, List, Tuple, Optional
+from dataclasses import dataclass
+import nltk
+from nltk.corpus import wordnet
+import spacy
+
+@dataclass
+class ContextClue:
+    type: str  # 'conversation_flow', 'expertise_level', 'semantic', 'domain'
+    confidence: float
+    interpretation: str
+
+class ContextAnalyzer:
+    def __init__(self):
+        self.nlp = spacy.load("en_core_web_sm")
+        self.conversation_patterns = {
+            'clarification': [
+                (r"what\?.*not\s+(down|done)", 'completion_query'),
+                (r"what\s+do\s+you\s+mean", 'clarification_request'),
+                (r"i\s+don't\s+understand", 'confusion_indicator')
+            ],
+            'correction': [
+                (r"no,?\s*i\s+meant", 'user_correction'),
+                (r"actually", 'correction_indicator')
+            ]
+        }
+        self.domain_contexts = {
+            'infrastructure': ['server', 'deployment', 'scaling', 'availability'],
+            'business': ['users', 'traffic', 'revenue', 'customers'],
+            'technical': ['api', 'database', 'frontend', 'backend']
+        }
+    
+    async def analyze_intent(self, user_input: str, conversation_history: List[Dict], 
+                           user_profile: Dict) -> Dict:
+        # Collect context clues from multiple sources
+        clues = []
+        
+        # 1. Analyze conversation flow
+        flow_clues = self._analyze_conversation_flow(user_input, conversation_history)
+        clues.extend(flow_clues)
+        
+        # 2. Consider user expertise level
+        expertise_clues = self._analyze_expertise_context(user_input, user_profile)
+        clues.extend(expertise_clues)
+        
+        # 3. Semantic analysis
+        semantic_clues = self._analyze_semantic_meaning(user_input, conversation_history)
+        clues.extend(semantic_clues)
+        
+        # 4. Domain context
+        domain_clues = self._analyze_domain_context(user_input, conversation_history)
+        clues.extend(domain_clues)
+        
+        # Synthesize interpretation
+        return self._synthesize_interpretation(user_input, clues)
+```
+
+**2. Ambiguity Detection and Resolution**:
+Extend `core/context_analyzer.py`:
+```python
+class AmbiguityResolver:
+    def __init__(self, context_analyzer: ContextAnalyzer):
+        self.context_analyzer = context_analyzer
+        self.ambiguous_terms = {
+            'down': ['unavailable', 'completed', 'decreased'],
+            'up': ['available', 'increased', 'ready'],
+            'done': ['completed', 'finished', 'deployed'],
+            'scale': ['resize', 'grow', 'measure']
+        }
+    
+    async def detect_ambiguity(self, user_input: str, context: Dict) -> Optional[Dict]:
+        # Tokenize and check for ambiguous terms
+        tokens = user_input.lower().split()
+        ambiguities = []
+        
+        for token in tokens:
+            if token in self.ambiguous_terms:
+                # Check if context provides clear interpretation
+                possible_meanings = self.ambiguous_terms[token]
+                context_interpretation = await self._interpret_from_context(
+                    token, possible_meanings, context
+                )
+                
+                if not context_interpretation['confident']:
+                    ambiguities.append({
+                        'term': token,
+                        'possible_meanings': possible_meanings,
+                        'likely_meaning': context_interpretation['best_guess'],
+                        'confidence': context_interpretation['confidence']
+                    })
+        
+        return {
+            'has_ambiguity': len(ambiguities) > 0,
+            'ambiguities': ambiguities,
+            'clarification_needed': any(a['confidence'] < 0.7 for a in ambiguities)
+        }
+    
+    async def generate_clarification(self, ambiguity_info: Dict) -> str:
+        # Generate natural clarification questions
+        if not ambiguity_info['clarification_needed']:
+            return None
+        
+        clarifications = []
+        for ambiguity in ambiguity_info['ambiguities']:
+            if ambiguity['confidence'] < 0.7:
+                term = ambiguity['term']
+                meanings = ambiguity['possible_meanings']
+                clarifications.append(
+                    f"When you said '{term}', did you mean {' or '.join(meanings)}?"
+                )
+        
+        return " ".join(clarifications)
+```
+
+**3. Integration with Existing Agents**:
+Update `agents/base_agent.py`:
+```python
+from core.context_analyzer import ContextAnalyzer, AmbiguityResolver
+
+class BaseAgent:
+    def __init__(self, name: str, topics: List[str], system_prompt: str):
+        self.name = name
+        self.topics = topics
+        self.system_prompt = system_prompt
+        self.context_analyzer = ContextAnalyzer()
+        self.ambiguity_resolver = AmbiguityResolver(self.context_analyzer)
+    
+    async def process_message(self, user_input: str, state: Dict, openai_client) -> str:
+        # Analyze context and intent
+        context_analysis = await self.context_analyzer.analyze_intent(
+            user_input,
+            state.get('chat_history', {}).get(self.name, []),
+            state.get('user_profile', {})
+        )
+        
+        # Check for ambiguities
+        ambiguity_info = await self.ambiguity_resolver.detect_ambiguity(
+            user_input, context_analysis
+        )
+        
+        if ambiguity_info['clarification_needed']:
+            # Ask for clarification instead of making assumptions
+            clarification = await self.ambiguity_resolver.generate_clarification(
+                ambiguity_info
+            )
+            return clarification
+        
+        # Process with enhanced context
+        enhanced_prompt = self._enhance_prompt_with_context(
+            self.system_prompt, context_analysis
+        )
+        
+        return await openai_client.call_agent(
+            enhanced_prompt,
+            user_input,
+            state.get('chat_history', {}).get(self.name, [])
+        )
+```
+
+**4. Conversation Flow Analyzer**:
+Implement conversation flow analysis methods:
+```python
+def _analyze_conversation_flow(self, user_input: str, history: List[Dict]) -> List[ContextClue]:
+    clues = []
+    
+    # Check if this is a response to a question
+    if history and history[-1]['role'] == 'assistant':
+        last_assistant_msg = history[-1]['content'].lower()
+        
+        # Check for question patterns in last message
+        if any(pattern in last_assistant_msg for pattern in ['?', 'how many', 'what', 'when']):
+            # User is likely answering a question
+            clues.append(ContextClue(
+                type='conversation_flow',
+                confidence=0.8,
+                interpretation='answer_to_question'
+            ))
+            
+            # Specific pattern matching for common misunderstandings
+            if 'availability' in last_assistant_msg and 'down' in user_input.lower():
+                # Assistant asked about availability, user might mean downtime percentage
+                clues.append(ContextClue(
+                    type='conversation_flow',
+                    confidence=0.9,
+                    interpretation='downtime_percentage'
+                ))
+    
+    # Check for follow-up patterns
+    if re.search(r'^(yes|no|yeah|nope)', user_input.lower()):
+        clues.append(ContextClue(
+            type='conversation_flow',
+            confidence=0.9,
+            interpretation='confirmation_response'
+        ))
+    
+    return clues
+```
+
+**5. Expertise-Based Context**:
+```python
+def _analyze_expertise_context(self, user_input: str, user_profile: Dict) -> List[ContextClue]:
+    clues = []
+    expertise_level = user_profile.get('expertise_level', 'intermediate')
+    
+    # Adjust interpretation based on expertise
+    if expertise_level == 'beginner':
+        # Beginners less likely to use technical jargon correctly
+        if any(term in user_input.lower() for term in ['down', 'up', 'scale']):
+            clues.append(ContextClue(
+                type='expertise_level',
+                confidence=0.6,
+                interpretation='possible_non_technical_usage'
+            ))
+    elif expertise_level == 'expert':
+        # Experts more likely to use precise technical terms
+        clues.append(ContextClue(
+            type='expertise_level',
+            confidence=0.8,
+            interpretation='technical_usage_likely'
+        ))
+    
+    return clues
+```
+
+**6. Semantic Similarity Analysis**:
+```python
+def _analyze_semantic_meaning(self, user_input: str, history: List[Dict]) -> List[ContextClue]:
+    clues = []
+    doc = self.nlp(user_input)
+    
+    # Use word embeddings to find semantic similarities
+    for token in doc:
+        if token.text.lower() in ['down', 'done']:
+            # Check phonetic similarity
+            if self._phonetic_similarity('down', 'done') > 0.8:
+                clues.append(ContextClue(
+                    type='semantic',
+                    confidence=0.7,
+                    interpretation='possible_phonetic_confusion'
+                ))
+    
+    # Context window analysis
+    if history:
+        recent_context = ' '.join([msg['content'] for msg in history[-3:]])
+        context_doc = self.nlp(recent_context)
+        
+        # Calculate semantic similarity between user input and recent context
+        similarity = doc.similarity(context_doc)
+        if similarity > 0.7:
+            clues.append(ContextClue(
+                type='semantic',
+                confidence=similarity,
+                interpretation='high_context_relevance'
+            ))
+    
+    return clues
+```
+
+# Test Strategy:
+**1. Ambiguity Detection Testing**:
+- Create test cases with known ambiguous inputs like "What? We're not down?" in different contexts
+- Verify the system correctly identifies ambiguity and generates appropriate clarification questions
+- Test with various homophones and similar-sounding words (down/done, to/two, there/their)
+
+**2. Context Flow Analysis Testing**:
+- Test conversation flow tracking by simulating multi-turn conversations
+- Verify the system correctly interprets responses based on previous questions
+- Test edge cases where user changes topic mid-conversation
+
+**3. Expertise-Based Interpretation Testing**:
+- Test same ambiguous inputs with different user expertise levels (beginner/intermediate/expert)
+- Verify interpretations adjust appropriately based on user profile
+- Test technical vs non-technical interpretation of common terms
+
+**4. Integration Testing**:
+- Test integration with existing agents to ensure context analysis doesn't break current functionality
+- Verify enhanced prompts improve response accuracy
+- Test that clarification questions are asked when confidence is low
+
+**5. Performance Testing**:
+- Measure latency impact of context analysis on response times
+- Ensure analysis completes within acceptable time limits (<500ms)
+- Test with various conversation history lengths
+
+**6. Accuracy Validation**:
+- Create test suite with 50+ ambiguous statements and their correct interpretations
+- Measure accuracy of disambiguation across different context types
+- Validate that false positive rate for ambiguity detection is below 10%

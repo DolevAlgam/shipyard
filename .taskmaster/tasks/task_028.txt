@@ -1,0 +1,339 @@
+# Task ID: 28
+# Title: Re-architect OpenAI Response Handling for Structured JSON Outputs
+# Status: pending
+# Dependencies: 3, 16, 18, 22
+# Priority: low
+# Description: Replace the current plain text response parsing architecture with a structured JSON object return system across all OpenAI API interactions, implementing response schemas, validation, and type-safe data structures to improve reliability and consistency throughout the LLM-first architecture.
+# Details:
+**STRUCTURED JSON RESPONSE ARCHITECTURE**:
+
+**1. Response Schema Definition System**:
+Create `core/response_schemas.py`:
+```python
+from typing import Dict, List, Optional, Union, Any
+from pydantic import BaseModel, Field, validator
+from enum import Enum
+
+class ResponseType(str, Enum):
+    ANALYSIS = "analysis"
+    QUESTION = "question"
+    RECOMMENDATION = "recommendation"
+    SUMMARY = "summary"
+    DOCUMENT = "document"
+    FEEDBACK = "feedback"
+    CONTEXT = "context"
+
+class BaseResponse(BaseModel):
+    type: ResponseType
+    confidence: float = Field(ge=0.0, le=1.0)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    
+    class Config:
+        extra = "forbid"  # Strict validation
+
+class AnalysisResponse(BaseResponse):
+    type: ResponseType = ResponseType.ANALYSIS
+    findings: List[str]
+    recommendations: List[str]
+    gaps_identified: List[Dict[str, str]]
+    
+class QuestionResponse(BaseResponse):
+    type: ResponseType = ResponseType.QUESTION
+    question_text: str
+    expected_response_type: str
+    follow_up_context: Optional[str]
+    clarification_needed: bool = False
+
+class RecommendationResponse(BaseResponse):
+    type: ResponseType = ResponseType.RECOMMENDATION
+    recommendations: List[Dict[str, Union[str, float]]]
+    rationale: str
+    alternatives: Optional[List[Dict[str, str]]]
+
+class DocumentResponse(BaseResponse):
+    type: ResponseType = ResponseType.DOCUMENT
+    sections: Dict[str, str]
+    version: str
+    revision_notes: Optional[str]
+```
+
+**2. Enhanced OpenAI Client with JSON Mode**:
+Update `core/openai_client.py`:
+```python
+import json
+from typing import Type, TypeVar, Optional
+from pydantic import BaseModel, ValidationError
+
+T = TypeVar('T', bound=BaseModel)
+
+class OpenAIClient:
+    def __init__(self):
+        # Existing initialization
+        self.json_mode_models = ['gpt-4o', 'gpt-4o-mini', 'o3', 'o3-mini']
+        
+    async def call_agent_structured(
+        self, 
+        system_prompt: str, 
+        user_message: str,
+        response_schema: Type[T],
+        chat_history: Optional[List[Dict]] = None,
+        model: str = "gpt-4o"
+    ) -> T:
+        """Call OpenAI with structured JSON response"""
+        
+        # Enhance system prompt with schema
+        schema_prompt = f"""
+{system_prompt}
+
+You must respond with a valid JSON object that matches this schema:
+{response_schema.schema_json(indent=2)}
+
+Ensure all required fields are present and properly typed.
+"""
+        
+        messages = self._prepare_messages(schema_prompt, user_message, chat_history)
+        
+        # Use JSON mode for supported models
+        response_format = {"type": "json_object"} if model in self.json_mode_models else None
+        
+        try:
+            response = await self._make_request(
+                messages=messages,
+                model=model,
+                response_format=response_format,
+                temperature=0.7
+            )
+            
+            # Parse and validate response
+            json_content = self._extract_json(response.choices[0].message.content)
+            return response_schema.parse_obj(json_content)
+            
+        except ValidationError as e:
+            # Retry with explicit error feedback
+            error_prompt = f"Your previous response had validation errors: {e}. Please correct and respond with valid JSON."
+            return await self._retry_with_correction(
+                messages, error_prompt, response_schema, model
+            )
+    
+    def _extract_json(self, content: str) -> Dict:
+        """Extract JSON from response, handling markdown code blocks"""
+        content = content.strip()
+        
+        # Remove markdown code blocks if present
+        if content.startswith("```json"):
+            content = content[7:]
+        if content.startswith("```"):
+            content = content[3:]
+        if content.endswith("```"):
+            content = content[:-3]
+            
+        return json.loads(content.strip())
+```
+
+**3. Agent Base Class Enhancement**:
+Update `agents/base_agent.py`:
+```python
+from core.response_schemas import *
+from typing import Union
+
+class BaseAgent:
+    def __init__(self, name: str, topics: List[str], system_prompt: str):
+        self.name = name
+        self.topics = topics
+        self.system_prompt = system_prompt
+        self.response_schemas = {
+            'analysis': AnalysisResponse,
+            'question': QuestionResponse,
+            'recommendation': RecommendationResponse,
+            'summary': SummaryResponse,
+            'document': DocumentResponse
+        }
+    
+    async def analyze_response(self, user_input: str, context: Dict, openai_client) -> AnalysisResponse:
+        """Get structured analysis of user response"""
+        prompt = f"""
+Analyze this user response in the context of {self.name} requirements gathering:
+User Input: {user_input}
+Current Context: {json.dumps(context, indent=2)}
+
+Provide structured analysis including findings, recommendations, and identified gaps.
+"""
+        
+        return await openai_client.call_agent_structured(
+            self.system_prompt,
+            prompt,
+            AnalysisResponse
+        )
+    
+    async def generate_question(self, topic: str, context: Dict, openai_client) -> QuestionResponse:
+        """Generate structured question for topic"""
+        prompt = f"""
+Generate a question about {topic} considering the current context.
+Context: {json.dumps(context, indent=2)}
+
+The question should be appropriate for the user's expertise level and gather specific requirements.
+"""
+        
+        return await openai_client.call_agent_structured(
+            self.system_prompt,
+            prompt,
+            QuestionResponse
+        )
+```
+
+**4. Response Validation and Error Handling**:
+Create `core/response_validator.py`:
+```python
+from typing import Dict, List, Any, Optional
+from pydantic import ValidationError
+import logging
+
+class ResponseValidator:
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+        self.validation_history: List[Dict] = []
+    
+    def validate_response(self, response: Any, expected_type: type) -> Tuple[bool, Optional[str]]:
+        """Validate response matches expected schema"""
+        try:
+            if not isinstance(response, expected_type):
+                return False, f"Expected {expected_type.__name__}, got {type(response).__name__}"
+            
+            # Additional business logic validation
+            if hasattr(response, 'confidence') and response.confidence < 0.3:
+                self.logger.warning(f"Low confidence response: {response.confidence}")
+            
+            self.validation_history.append({
+                'timestamp': datetime.now(),
+                'type': expected_type.__name__,
+                'success': True
+            })
+            
+            return True, None
+            
+        except Exception as e:
+            self.validation_history.append({
+                'timestamp': datetime.now(),
+                'type': expected_type.__name__,
+                'success': False,
+                'error': str(e)
+            })
+            return False, str(e)
+```
+
+**5. Migration Strategy for Existing Agents**:
+Create migration utilities in `utils/migration.py`:
+```python
+class ResponseMigrator:
+    """Utilities to migrate existing plain text parsing to structured responses"""
+    
+    @staticmethod
+    def migrate_agent_method(agent_class: type, method_name: str, response_type: type):
+        """Decorator to migrate agent methods to structured responses"""
+        def decorator(func):
+            async def wrapper(self, *args, **kwargs):
+                # Get OpenAI client from args/kwargs
+                openai_client = kwargs.get('openai_client') or args[-1]
+                
+                # Build prompt from original method
+                prompt = await func(self, *args, **kwargs)
+                
+                # Call with structured response
+                return await openai_client.call_agent_structured(
+                    self.system_prompt,
+                    prompt,
+                    response_type
+                )
+            return wrapper
+        
+        # Apply decorator to method
+        original_method = getattr(agent_class, method_name)
+        setattr(agent_class, method_name, decorator(original_method))
+```
+
+**6. Backwards Compatibility Layer**:
+```python
+class CompatibilityAdapter:
+    """Adapter to maintain compatibility during migration"""
+    
+    @staticmethod
+    def structured_to_text(response: BaseResponse) -> str:
+        """Convert structured response to plain text for legacy code"""
+        if isinstance(response, QuestionResponse):
+            return response.question_text
+        elif isinstance(response, AnalysisResponse):
+            return "\n".join(response.findings)
+        elif isinstance(response, DocumentResponse):
+            return "\n\n".join(f"## {k}\n{v}" for k, v in response.sections.items())
+        else:
+            return json.dumps(response.dict(), indent=2)
+    
+    @staticmethod
+    async def legacy_call_wrapper(openai_client, system_prompt: str, user_message: str) -> str:
+        """Wrapper to use structured calls but return plain text"""
+        # Determine appropriate response type from prompt
+        response_type = CompatibilityAdapter._infer_response_type(system_prompt)
+        
+        structured_response = await openai_client.call_agent_structured(
+            system_prompt,
+            user_message,
+            response_type
+        )
+        
+        return CompatibilityAdapter.structured_to_text(structured_response)
+```
+
+**7. Integration with O3 Reasoning Models**:
+Enhance structured responses for o3 models:
+```python
+class ReasoningResponse(BaseResponse):
+    type: ResponseType = ResponseType.ANALYSIS
+    reasoning_steps: List[str]
+    conclusion: str
+    confidence_breakdown: Dict[str, float]
+    alternative_paths: Optional[List[Dict[str, Any]]]
+    
+    @validator('reasoning_steps')
+    def validate_reasoning(cls, v):
+        if len(v) < 2:
+            raise ValueError("Reasoning must include at least 2 steps")
+        return v
+```
+
+# Test Strategy:
+**1. Schema Validation Testing**:
+- Create comprehensive test suite for each response schema with valid and invalid data
+- Test edge cases like missing required fields, incorrect types, and extra fields
+- Verify that schema validation errors are properly caught and handled
+- Test nested object validation and complex field relationships
+
+**2. OpenAI Client JSON Mode Testing**:
+- Mock OpenAI API responses with both valid JSON and malformed responses
+- Test extraction of JSON from various formats (with/without markdown blocks)
+- Verify retry logic when validation fails
+- Test fallback behavior for models that don't support JSON mode
+- Ensure proper error messages are generated for schema violations
+
+**3. End-to-End Agent Testing**:
+- Test each agent's migration from plain text to structured responses
+- Verify that all agent methods return properly typed response objects
+- Test the complete flow from user input to structured response
+- Ensure context is properly maintained across structured calls
+
+**4. Backwards Compatibility Testing**:
+- Test the compatibility adapter with all response types
+- Verify legacy code paths still function with the adapter
+- Test gradual migration scenarios where some agents use structured responses while others don't
+- Ensure no breaking changes for existing functionality
+
+**5. Performance and Reliability Testing**:
+- Measure response time impact of JSON parsing and validation
+- Test concurrent structured calls for race conditions
+- Verify memory usage with large response objects
+- Test error recovery and retry mechanisms under various failure scenarios
+
+**6. Integration Testing with O3 Models**:
+- Test structured responses with o3 reasoning models
+- Verify reasoning steps are properly captured in structured format
+- Test confidence breakdowns and alternative paths
+- Ensure compatibility between o3-specific schemas and general schemas

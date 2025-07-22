@@ -1,0 +1,42 @@
+# Task ID: 5
+# Title: Implement Business, App, and Tribal Knowledge Agents
+# Status: done
+# Dependencies: 4
+# Priority: medium
+# Description: Create the three core interview agents that gather business requirements, application needs, and organizational constraints respectively
+# Details:
+Implement agents/business.py:
+```python
+from .base_agent import BaseAgent
+from core.prompts import BUSINESS_AGENT_PROMPT, BUSINESS_TOPICS
+
+class BusinessAgent(BaseAgent):
+    def __init__(self):
+        super().__init__("business", BUSINESS_TOPICS, BUSINESS_AGENT_PROMPT)
+    
+    async def process_topic(self, topic: str, state: Dict, openai_client) -> Dict:
+        # Adaptive questioning based on expertise
+        # Handle topics: user_base, traffic_patterns, availability, etc.
+        pass
+```
+
+Implement agents/app.py with APP_TOPICS:
+- application_type
+- programming_languages
+- frameworks
+- database_requirements
+- storage_needs
+- external_integrations
+- api_requirements
+- deployment_model
+
+Implement agents/tribal.py with TRIBAL_TOPICS:
+- cloud_provider
+- existing_tools
+- team_expertise
+- security_policies
+- operational_preferences
+- development_workflow
+
+# Test Strategy:
+Test each agent's ability to adapt questions based on user expertise, verify proper topic coverage, and ensure all gathered requirements are stored correctly in state.

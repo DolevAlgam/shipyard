@@ -1,0 +1,144 @@
+# Task ID: 19
+# Title: Implement Weights & Biases Weave LLM Observability
+# Status: pending
+# Dependencies: 3, 4, 5, 8
+# Priority: medium
+# Description: Integrate Weave for comprehensive LLM observability and monitoring by adding weave.init() at startup and @weave.op() decorators to all agent functions to track LLM calls, inputs, outputs, costs, and performance metrics.
+# Details:
+Implement comprehensive LLM observability using Weave (already in requirements.txt as weave==0.51.56):
+
+**1. Initialize Weave at Application Startup**
+```python
+# In main.py or core/__init__.py
+import weave
+import os
+
+def initialize_weave():
+    project_name = os.environ.get("WEAVE_PROJECT_NAME", "infrastructure-interview-agent")
+    weave.init(project_name)
+    print(f"Weave initialized for project: {project_name}")
+```
+
+**2. Add @weave.op() Decorators to All Agent Functions**
+```python
+# In agents/base_agent.py
+import weave
+
+class BaseAgent(ABC):
+    @weave.op()
+    async def process_topic(self, topic: str, state: Dict, openai_client) -> Dict:
+        # Existing implementation with automatic tracing
+        pass
+    
+    @weave.op()
+    def needs_follow_up(self, user_answer: str) -> bool:
+        # Existing implementation with automatic tracing
+        pass
+```
+
+**3. Instrument OpenAI Client Calls**
+```python
+# In core/openai_client.py
+import weave
+
+class OpenAIClient:
+    @weave.op()
+    async def call_agent(self, system_prompt: str, user_message: str, 
+                        chat_history: Optional[List[Dict]] = None) -> str:
+        # Weave will automatically track:
+        # - Input parameters (prompts, messages)
+        # - OpenAI API response
+        # - Token usage and costs
+        # - Latency and performance metrics
+        return await self._make_openai_call(...)
+```
+
+**4. Track Agent-Specific Operations**
+```python
+# In agents/profiler.py, business.py, app.py, tribal.py, etc.
+import weave
+
+class ProfilerAgent(BaseAgent):
+    @weave.op()
+    async def assess_expertise(self, user_response: str, openai_client) -> str:
+        # Track expertise assessment logic
+        pass
+    
+    @weave.op()
+    async def gauge_complexity(self, project_description: str, openai_client) -> str:
+        # Track complexity assessment
+        pass
+```
+
+**5. Instrument Document Generation and Review Loop**
+```python
+# In agents/document_generator.py
+import weave
+
+class DocumentGeneratorAgent:
+    @weave.op()
+    async def generate_document(self, state: Dict, openai_client) -> str:
+        # Track document generation process
+        pass
+    
+    @weave.op()
+    async def apply_feedback(self, document: str, feedback: str, openai_client) -> str:
+        # Track document revision process
+        pass
+```
+
+**6. Add Environment Configuration**
+```python
+# Add to .env or environment setup
+WEAVE_PROJECT_NAME=infrastructure-interview-agent
+OPENAI_API_KEY=your_api_key_here
+```
+
+**7. Integration Points**
+- Call `initialize_weave()` in main.py before starting the interview
+- Ensure all agent methods that make LLM calls are decorated with @weave.op()
+- Add weave.op() to state management operations that involve LLM processing
+- Track user interactions and agent responses throughout the interview flow
+
+**Key Benefits:**
+- Automatic tracking of all OpenAI API calls with token usage and costs
+- Complete visibility into agent decision-making processes
+- Performance metrics for optimization
+- Debugging capabilities for troubleshooting agent behavior
+- Historical analysis of interview sessions
+
+# Test Strategy:
+**1. Weave Initialization Testing:**
+- Verify weave.init() is called successfully at startup
+- Test with valid and invalid project names
+- Confirm Weave dashboard shows the project
+
+**2. Decorator Integration Testing:**
+- Verify all agent methods are properly decorated with @weave.op()
+- Test that decorated functions still work correctly
+- Confirm traces appear in Weave dashboard for each agent operation
+
+**3. OpenAI Call Tracking:**
+- Make test calls through OpenAIClient and verify they appear in Weave
+- Check that input prompts, responses, token usage, and costs are tracked
+- Test retry logic still works with Weave instrumentation
+
+**4. End-to-End Interview Tracing:**
+- Run a complete interview session and verify all interactions are tracked
+- Check that agent transitions and state changes are visible
+- Confirm user inputs and agent responses are properly logged
+
+**5. Performance Impact Testing:**
+- Measure interview performance with and without Weave enabled
+- Ensure observability doesn't significantly impact user experience
+- Test error handling when Weave service is unavailable
+
+**6. Data Validation:**
+- Verify tracked data includes all required fields (inputs, outputs, metadata)
+- Test that sensitive information is not inadvertently logged
+- Confirm cost tracking accuracy against OpenAI billing
+
+**7. Dashboard Verification:**
+- Access Weave dashboard and verify all traces are visible
+- Test filtering and searching capabilities
+- Confirm performance metrics and cost analysis features work correctly

@@ -1,0 +1,289 @@
+# Task ID: 40
+# Title: Restructure Question Formulation for Clarity and Directness
+# Status: pending
+# Dependencies: 4, 5, 32, 39
+# Priority: medium
+# Description: Refactor all agent question generation to eliminate confusing preambles and clearly indicate expected answer types upfront, making questions more direct and easier for users to understand and respond to effectively.
+# Details:
+**QUESTION RESTRUCTURING AND CLARITY ENHANCEMENT SYSTEM**
+
+**1. Create Question Structure Analyzer** (`core/question_structure.py`):
+```python
+from typing import Dict, List, Optional, Tuple, Union
+from dataclasses import dataclass
+from enum import Enum
+
+class AnswerType(str, Enum):
+    YES_NO = "yes_no"
+    MULTIPLE_CHOICE = "multiple_choice"
+    NUMERIC = "numeric"
+    TEXT_SHORT = "text_short"
+    TEXT_DETAILED = "text_detailed"
+    PRIORITY_LIST = "priority_list"
+    SELECTION_LIST = "selection_list"
+
+@dataclass
+class QuestionStructure:
+    answer_type: AnswerType
+    main_question: str
+    context: Optional[str] = None
+    examples: Optional[List[str]] = None
+    constraints: Optional[Dict[str, Any]] = None
+    
+class QuestionRestructurer:
+    def __init__(self, openai_client):
+        self.openai_client = openai_client
+        
+    async def restructure_question(self, original_question: str, topic: str) -> QuestionStructure:
+        """Analyze and restructure questions to be clear and direct"""
+        
+        # First, identify the core question and answer type
+        analysis_prompt = f"""
+        Analyze this question and identify:
+        1. The core question being asked
+        2. What type of answer is expected
+        3. Any context that's essential vs. confusing
+        
+        Original question: {original_question}
+        Topic: {topic}
+        
+        Return a JSON with:
+        - core_question: The essential question
+        - answer_type: yes_no, multiple_choice, numeric, text_short, text_detailed, priority_list, selection_list
+        - essential_context: Only context needed to answer
+        - examples_if_helpful: List of examples that clarify, not confuse
+        """
+        
+        analysis = await self.openai_client.call_agent(
+            system_prompt="You are an expert at analyzing and simplifying questions.",
+            user_message=analysis_prompt
+        )
+        
+        # Restructure based on answer type
+        return await self._create_structured_question(analysis, original_question)
+```
+
+**2. Question Template System** (`core/question_templates.py`):
+```python
+class QuestionTemplates:
+    """Templates for different answer types to ensure clarity"""
+    
+    YES_NO_TEMPLATE = """
+    {main_question}
+    
+    Please answer: Yes or No
+    {context}
+    """
+    
+    MULTIPLE_CHOICE_TEMPLATE = """
+    {main_question}
+    
+    Please select one:
+    {options}
+    
+    {context}
+    """
+    
+    NUMERIC_TEMPLATE = """
+    {main_question}
+    
+    Please provide a number{unit_hint}.
+    {constraints}
+    
+    {context}
+    """
+    
+    PRIORITY_LIST_TEMPLATE = """
+    What would you like me to help you prioritize?
+    
+    {main_question}
+    
+    Please list in order of importance (most important first):
+    {examples}
+    
+    {context}
+    """
+    
+    SELECTION_LIST_TEMPLATE = """
+    {main_question}
+    
+    Select all that apply:
+    {options}
+    
+    Type 'none' if none apply.
+    {context}
+    """
+```
+
+**3. Update BaseAgent Question Generation** (`agents/base_agent.py`):
+```python
+class BaseAgent(ABC):
+    def __init__(self, name: str, topics: List[str], prompt: str):
+        self.name = name
+        self.topics = topics
+        self.prompt = prompt
+        self.question_restructurer = QuestionRestructurer(self.openai_client)
+        
+    async def ask_question(self, topic: str, state: Dict) -> str:
+        """Generate and restructure questions for clarity"""
+        
+        # Get raw question from LLM
+        raw_question = await self._generate_raw_question(topic, state)
+        
+        # Restructure for clarity
+        structured = await self.question_restructurer.restructure_question(
+            raw_question, topic
+        )
+        
+        # Format using appropriate template
+        formatted_question = self._format_structured_question(structured)
+        
+        return formatted_question
+```
+
+**4. Specific Problem Fixes**:
+
+```python
+# BEFORE (confusing):
+question = """
+When building modern applications, teams often need to integrate with various 
+external services for functionality like payment processing (Stripe, PayPal), 
+communication (Twilio, SendGrid), analytics (Mixpanel, Segment), and many others.
+These integrations can significantly impact your infrastructure needs, security 
+considerations, and architectural decisions. Considering your application's goals 
+and user needs... Which external integrations—if any—should I prioritize?
+"""
+
+# AFTER (clear and direct):
+question = """
+EXTERNAL SERVICE INTEGRATIONS
+
+What external services will your application need to integrate with?
+
+Select all that apply:
+□ Payment processing (Stripe, PayPal, etc.)
+□ Email/SMS (SendGrid, Twilio, etc.)
+□ Analytics (Mixpanel, Segment, etc.)
+□ Authentication (Auth0, Okta, etc.)
+□ Storage (AWS S3, Cloudinary, etc.)
+□ Other (please specify)
+□ None planned yet
+
+This helps determine infrastructure requirements for API connections and security.
+"""
+```
+
+**5. Context Positioning Rules**:
+```python
+class ContextPositioning:
+    """Rules for where to place context in questions"""
+    
+    RULES = {
+        "answer_type_first": "Always state what type of answer you want upfront",
+        "context_after": "Put context AFTER the main question and answer format",
+        "examples_as_options": "Convert examples into selectable options when possible",
+        "why_at_end": "Explain why you're asking at the very end, briefly",
+        "avoid_storytelling": "Don't tell stories or give lectures before questions"
+    }
+```
+
+**6. Integration with Question Title System** (from Task #39):
+```python
+async def format_complete_question(self, topic: str, state: Dict) -> str:
+    """Combine title, structure, and formatting"""
+    
+    # Get title from Task #39's system
+    title = await self.question_formatter.get_question_title(topic)
+    
+    # Get restructured question
+    structured_question = await self.ask_question(topic, state)
+    
+    # Combine with clear visual separation
+    return f"""
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    {title}
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    
+    {structured_question}
+    """
+```
+
+**7. Validation System**:
+```python
+class QuestionClarityValidator:
+    """Ensure questions meet clarity standards"""
+    
+    async def validate_question(self, question: str) -> Dict[str, Any]:
+        validation_prompt = f"""
+        Rate this question's clarity on these criteria:
+        1. Is the expected answer type immediately clear? (1-10)
+        2. Is the main question stated before context? (1-10)
+        3. Are examples helpful rather than confusing? (1-10)
+        4. Is it free from unnecessary preamble? (1-10)
+        
+        Question: {question}
+        
+        Also identify any remaining issues.
+        """
+        
+        result = await self.openai_client.call_agent(
+            system_prompt="You are an expert at evaluating question clarity.",
+            user_message=validation_prompt
+        )
+        
+        return self._parse_validation_result(result)
+```
+
+# Test Strategy:
+**COMPREHENSIVE QUESTION CLARITY TESTING STRATEGY**:
+
+**1. Preamble Removal Testing**:
+- Test that long introductory paragraphs are removed or moved after the main question
+- Verify questions get to the point within the first sentence
+- Ensure educational content is positioned as optional context at the end
+
+**2. Answer Type Clarity Testing**:
+- Create test suite with questions of each answer type
+- Verify that users can identify expected answer format within 2 seconds
+- Test that "Yes/No", "Select all", "Provide a number" instructions are prominent
+
+**3. Structure Transformation Testing**:
+- Test conversion of the example question about external integrations
+- Verify it transforms from paragraph + buried question to clear selection list
+- Test at least 20 real questions from each agent for proper restructuring
+
+**4. Context Positioning Validation**:
+- Ensure main question appears before context in 100% of cases
+- Verify context is marked as supplementary (e.g., "Additional context:", "Why this matters:")
+- Test that context doesn't exceed 2-3 lines unless absolutely necessary
+
+**5. Integration Testing with Question Titles (Task #39)**:
+- Verify restructured questions work seamlessly with title system
+- Test that title + restructured question creates clear visual hierarchy
+- Ensure no redundancy between title and main question
+
+**6. User Comprehension Testing**:
+- A/B test original vs. restructured questions with test users
+- Measure time to comprehension and response accuracy
+- Track skip rates before and after restructuring
+
+**7. Edge Case Testing**:
+- Test complex technical questions that legitimately need context
+- Verify multi-part questions are broken down appropriately
+- Test questions that ask for priorities or rankings
+
+**8. Automated Clarity Scoring**:
+- Run all generated questions through the QuestionClarityValidator
+- Ensure average clarity score > 8/10 across all criteria
+- Flag and manually review any questions scoring < 7/10
+
+**9. Template Compliance Testing**:
+- Verify each answer type uses its designated template
+- Test template variable substitution works correctly
+- Ensure no template artifacts appear in final questions
+
+**10. Real-world Question Examples to Test**:
+- Budget questions: Should show "Please provide a number" upfront
+- Integration questions: Should present as checklist, not paragraph
+- Priority questions: Should clearly state "List in order of importance"
+- Technical decisions: Should present options clearly before explaining implications

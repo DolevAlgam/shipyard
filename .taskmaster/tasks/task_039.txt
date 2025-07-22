@@ -1,0 +1,295 @@
+# Task ID: 39
+# Title: Add Clear Titles to Agent Questions for Improved User Experience
+# Status: pending
+# Dependencies: 4, 5, 32
+# Priority: high
+# Description: Modify the question formatting system across all agents to include descriptive titles before questions, enabling users to quickly understand the topic and decide whether to engage or skip, improving overall interview flow and user experience.
+# Details:
+**QUESTION TITLE FORMATTING SYSTEM**
+
+**1. Create Question Title Formatter** (`core/question_formatter.py`):
+```python
+from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from enum import Enum
+
+class QuestionCategory(str, Enum):
+    SECRET_MANAGEMENT = "SECRET MANAGEMENT & CONNECTIVITY"
+    BUDGET_PLANNING = "BUDGET & COST OPTIMIZATION"
+    TEAM_STRUCTURE = "TEAM & COLLABORATION"
+    SCALING_STRATEGY = "SCALING & PERFORMANCE"
+    SECURITY_COMPLIANCE = "SECURITY & COMPLIANCE"
+    DEPLOYMENT_STRATEGY = "DEPLOYMENT & INFRASTRUCTURE"
+    USER_EXPERIENCE = "USER EXPERIENCE & FRONTEND"
+    DATA_MANAGEMENT = "DATA & STORAGE"
+    MONITORING_OBSERVABILITY = "MONITORING & OBSERVABILITY"
+    GENERAL_REQUIREMENTS = "GENERAL REQUIREMENTS"
+
+@dataclass
+class FormattedQuestion:
+    title: str
+    category: QuestionCategory
+    question: str
+    skip_hint: Optional[str] = None
+
+class QuestionFormatter:
+    def __init__(self):
+        self.category_mappings = {
+            # Keywords to category mapping
+            "secret": QuestionCategory.SECRET_MANAGEMENT,
+            "api key": QuestionCategory.SECRET_MANAGEMENT,
+            "external service": QuestionCategory.SECRET_MANAGEMENT,
+            "budget": QuestionCategory.BUDGET_PLANNING,
+            "cost": QuestionCategory.BUDGET_PLANNING,
+            "team": QuestionCategory.TEAM_STRUCTURE,
+            "collaboration": QuestionCategory.TEAM_STRUCTURE,
+            "scale": QuestionCategory.SCALING_STRATEGY,
+            "performance": QuestionCategory.SCALING_STRATEGY,
+            "security": QuestionCategory.SECURITY_COMPLIANCE,
+            "compliance": QuestionCategory.SECURITY_COMPLIANCE,
+            "deployment": QuestionCategory.DEPLOYMENT_STRATEGY,
+            "infrastructure": QuestionCategory.DEPLOYMENT_STRATEGY,
+            "frontend": QuestionCategory.USER_EXPERIENCE,
+            "ui": QuestionCategory.USER_EXPERIENCE,
+            "database": QuestionCategory.DATA_MANAGEMENT,
+            "storage": QuestionCategory.DATA_MANAGEMENT,
+            "monitoring": QuestionCategory.MONITORING_OBSERVABILITY,
+            "logging": QuestionCategory.MONITORING_OBSERVABILITY
+        }
+    
+    def categorize_question(self, question: str) -> QuestionCategory:
+        """Determine the category based on question content"""
+        question_lower = question.lower()
+        
+        for keyword, category in self.category_mappings.items():
+            if keyword in question_lower:
+                return category
+        
+        return QuestionCategory.GENERAL_REQUIREMENTS
+    
+    def format_question(self, question: str, custom_title: Optional[str] = None) -> FormattedQuestion:
+        """Format a question with appropriate title and category"""
+        category = self.categorize_question(question)
+        
+        if custom_title:
+            title = custom_title
+        else:
+            title = category.value
+        
+        # Add skip hint for optional questions
+        skip_hint = None
+        if any(word in question.lower() for word in ["optional", "if applicable", "if any"]):
+            skip_hint = "(Press Enter to skip if not applicable)"
+        
+        return FormattedQuestion(
+            title=title,
+            category=category,
+            question=question,
+            skip_hint=skip_hint
+        )
+    
+    def format_for_display(self, formatted_question: FormattedQuestion) -> str:
+        """Generate the final display format"""
+        output = f"\n{'='*60}\n"
+        output += f"📋 {formatted_question.title}\n"
+        output += f"{'='*60}\n\n"
+        output += formatted_question.question
+        
+        if formatted_question.skip_hint:
+            output += f"\n\n💡 {formatted_question.skip_hint}"
+        
+        return output
+```
+
+**2. Update Base Agent Class** (`agents/base_agent.py`):
+```python
+from core.question_formatter import QuestionFormatter
+
+class BaseAgent(ABC):
+    def __init__(self, name: str, topics: List[str], prompt: str):
+        self.name = name
+        self.topics = topics
+        self.prompt = prompt
+        self.question_formatter = QuestionFormatter()
+    
+    async def ask_question(self, question: str, custom_title: Optional[str] = None) -> str:
+        """Format and display a question with title"""
+        formatted = self.question_formatter.format_question(question, custom_title)
+        display_text = self.question_formatter.format_for_display(formatted)
+        
+        # Log the category for analytics
+        print(f"[{self.name}] Asking {formatted.category.value} question")
+        
+        return display_text
+```
+
+**3. Update Agent Question Prompts** (`core/prompts.py`):
+```python
+# Add instruction to include question titles in agent prompts
+QUESTION_FORMATTING_INSTRUCTION = """
+When asking questions, always structure them clearly with:
+1. A descriptive category title that summarizes the topic
+2. The actual question
+3. Optional skip hints for non-critical information
+
+Example format:
+"For the question about external services, format it as:
+Title: SECRET MANAGEMENT & CONNECTIVITY
+Question: Does your application need to connect to any external services or APIs? If so, which ones?"
+"""
+
+# Update all agent prompts to include this instruction
+BUSINESS_AGENT_PROMPT = f"""
+{EXISTING_BUSINESS_PROMPT}
+
+{QUESTION_FORMATTING_INSTRUCTION}
+
+When asking about budgets, use title: "BUDGET & COST OPTIMIZATION"
+When asking about team size, use title: "TEAM & COLLABORATION"
+When asking about scale, use title: "SCALING & PERFORMANCE"
+"""
+
+# Similar updates for APP_AGENT_PROMPT, TRIBAL_AGENT_PROMPT, etc.
+```
+
+**4. Create Question Title Configuration** (`config/question_titles.py`):
+```python
+# Centralized configuration for question titles
+QUESTION_TITLES = {
+    "business": {
+        "user_base": "TARGET AUDIENCE & USER BASE",
+        "traffic_patterns": "TRAFFIC PATTERNS & LOAD",
+        "budget": "BUDGET & COST CONSTRAINTS",
+        "timeline": "PROJECT TIMELINE & DEADLINES",
+        "team_size": "TEAM STRUCTURE & RESOURCES",
+        "growth_projections": "GROWTH & SCALING PROJECTIONS"
+    },
+    "app": {
+        "tech_stack": "TECHNOLOGY STACK & FRAMEWORKS",
+        "api_design": "API DESIGN & ARCHITECTURE",
+        "frontend_needs": "FRONTEND & USER INTERFACE",
+        "data_storage": "DATA STORAGE & DATABASES",
+        "integrations": "THIRD-PARTY INTEGRATIONS",
+        "performance": "PERFORMANCE REQUIREMENTS"
+    },
+    "tribal": {
+        "deployment_preferences": "DEPLOYMENT PREFERENCES",
+        "security_requirements": "SECURITY & COMPLIANCE",
+        "monitoring_needs": "MONITORING & OBSERVABILITY",
+        "team_expertise": "TEAM EXPERTISE & SKILLS",
+        "existing_tools": "EXISTING TOOLS & WORKFLOWS"
+    }
+}
+```
+
+**5. Update Individual Agents to Use Titles**:
+```python
+# Example: Update BusinessAgent
+class BusinessAgent(BaseAgent):
+    async def process_topic(self, topic: str, state: Dict, openai_client) -> Dict:
+        # Get the title for this topic
+        title = QUESTION_TITLES["business"].get(topic, "BUSINESS REQUIREMENTS")
+        
+        # Generate question with OpenAI
+        question = await self.generate_question(topic, state, openai_client)
+        
+        # Format and display with title
+        formatted_question = await self.ask_question(question, custom_title=title)
+        
+        # Show to user and get response
+        user_response = input(formatted_question + "\n\nYour answer: ")
+        
+        return {"topic": topic, "response": user_response, "title": title}
+```
+
+**6. Add Visual Formatting Helpers** (`utils/display_helpers.py`):
+```python
+from colorama import init, Fore, Style
+init(autoreset=True)
+
+class DisplayFormatter:
+    @staticmethod
+    def format_title(title: str, category: str) -> str:
+        """Add color coding based on category"""
+        color_map = {
+            "SECRET_MANAGEMENT": Fore.RED,
+            "BUDGET_PLANNING": Fore.GREEN,
+            "TEAM_STRUCTURE": Fore.BLUE,
+            "SCALING_STRATEGY": Fore.YELLOW,
+            "SECURITY_COMPLIANCE": Fore.MAGENTA,
+            "DEPLOYMENT_STRATEGY": Fore.CYAN
+        }
+        
+        color = color_map.get(category, Fore.WHITE)
+        return f"{color}{Style.BRIGHT}{title}{Style.RESET_ALL}"
+    
+    @staticmethod
+    def format_skip_hint() -> str:
+        """Format skip hints consistently"""
+        return f"{Fore.YELLOW}💡 Press Enter to skip if not applicable{Style.RESET_ALL}"
+```
+
+**7. Update Main Interview Loop** (`main.py`):
+```python
+# Add progress indicator with titles
+class InterviewProgress:
+    def __init__(self):
+        self.asked_questions = []
+    
+    def add_question(self, title: str, agent: str):
+        self.asked_questions.append({"title": title, "agent": agent})
+    
+    def show_progress(self):
+        print("\n📊 Interview Progress:")
+        for i, q in enumerate(self.asked_questions, 1):
+            print(f"  {i}. [{q['agent']}] {q['title']} ✓")
+```
+
+# Test Strategy:
+**COMPREHENSIVE QUESTION TITLE TESTING STRATEGY**:
+
+**1. Title Categorization Testing**:
+- Test that questions about secrets/APIs get "SECRET MANAGEMENT & CONNECTIVITY" title
+- Verify budget questions receive "BUDGET & COST OPTIMIZATION" title
+- Ensure team-related questions show "TEAM & COLLABORATION" title
+- Test edge cases where questions might fit multiple categories
+
+**2. Display Format Testing**:
+- Verify each question displays with clear visual separation (divider lines)
+- Test that titles appear prominently before questions
+- Ensure skip hints appear only for optional questions
+- Verify consistent formatting across all agents
+
+**3. Agent Integration Testing**:
+- Test BusinessAgent displays titles for all business topics
+- Verify AppAgent shows appropriate technical category titles
+- Ensure TribalAgent uses organizational category titles
+- Confirm ProfilerAgent shows "INITIAL ASSESSMENT" or similar titles
+
+**4. User Experience Testing**:
+- Simulate user sessions and verify titles help with navigation
+- Test that users can quickly identify question topics from titles
+- Verify skip functionality works when users see optional question titles
+- Ensure titles don't break existing question flow
+
+**5. Prompt Injection Testing**:
+- Verify agents correctly parse and use title instructions from prompts
+- Test that custom titles override default categorization when provided
+- Ensure title formatting doesn't interfere with question content
+
+**6. Visual Consistency Testing**:
+- Test color coding (if implemented) displays correctly
+- Verify emoji/icons render properly across different terminals
+- Ensure formatting works in both light and dark terminal themes
+- Test line wrapping for long titles
+
+**7. Progress Tracking Testing**:
+- Verify interview progress shows completed question titles
+- Test that skipped questions are marked appropriately
+- Ensure progress display helps users understand interview structure
+
+**8. Edge Case Testing**:
+- Test questions that don't fit any category (should use GENERAL_REQUIREMENTS)
+- Verify very long titles truncate appropriately
+- Test special characters in titles
+- Ensure international characters display correctly

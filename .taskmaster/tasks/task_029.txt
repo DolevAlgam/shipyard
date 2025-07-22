@@ -1,0 +1,255 @@
+# Task ID: 29
+# Title: Implement Infrastructure Readiness Assessment Agent
+# Status: pending
+# Dependencies: 4, 5, 8
+# Priority: high
+# Description: Create a specialized agent that assesses the user's current infrastructure state at the start of the interview to determine if they have an existing app running locally, deployed to cloud, or are starting from scratch, providing critical context that influences all subsequent questioning strategies.
+# Details:
+**INFRASTRUCTURE READINESS ASSESSMENT AGENT**
+
+**1. Create Infrastructure Assessment Agent** (`agents/infrastructure_readiness.py`):
+```python
+from .base_agent import BaseAgent
+from core.prompts import INFRASTRUCTURE_READINESS_PROMPT
+from typing import Dict, Optional
+from enum import Enum
+
+class InfrastructureState(str, Enum):
+    SCRATCH = "scratch"  # No existing app
+    LOCAL_ONLY = "local_only"  # App runs locally only
+    DEPLOYED = "deployed"  # App already deployed
+    MIGRATING = "migrating"  # Moving between platforms
+
+class CodebaseState(str, Enum):
+    NONE = "none"  # Just ideas, no code
+    PARTIAL = "partial"  # Some code written
+    COMPLETE = "complete"  # Fully functional codebase
+
+class CustomerState(str, Enum):
+    NONE = "none"  # No customers yet
+    TESTING = "testing"  # Beta users or internal testing
+    PRODUCTION = "production"  # Active customers in production
+
+class InfrastructureReadinessAgent(BaseAgent):
+    def __init__(self):
+        super().__init__("infrastructure_readiness", [], INFRASTRUCTURE_READINESS_PROMPT)
+    
+    async def assess_readiness(self, state: Dict, openai_client) -> Dict:
+        # Core assessment questions
+        assessment_questions = [
+            "Do you have actual application code written, or are you starting from scratch?",
+            "What infrastructure are you currently using (cloud providers, services, databases, etc.)?",
+            "Do you have existing customers/users using your application?"
+        ]
+        
+        # Determine infrastructure state
+        infrastructure_state = await self._determine_state(state, openai_client)
+        codebase_state = await self._assess_codebase(state, openai_client)
+        customer_state = await self._assess_customers(state, openai_client)
+        
+        # Set context flags for other agents
+        context = {
+            "infrastructure_state": infrastructure_state,
+            "codebase_state": codebase_state,
+            "customer_state": customer_state,
+            "existing_deployment": self._extract_deployment_info(state),
+            "skip_provider_questions": infrastructure_state == InfrastructureState.DEPLOYED,
+            "focus_migration": infrastructure_state == InfrastructureState.MIGRATING,
+            "requires_zero_downtime": customer_state == CustomerState.PRODUCTION,
+            "needs_data_migration": self._needs_data_migration(state),
+            "existing_integrations": self._extract_integrations(state)
+        }
+        
+        return context
+    
+    async def _determine_state(self, state: Dict, openai_client) -> InfrastructureState:
+        # Use LLM to analyze responses and categorize infrastructure state
+        pass
+    
+    async def _assess_codebase(self, state: Dict, openai_client) -> CodebaseState:
+        # Determine the state of their actual code
+        pass
+    
+    async def _assess_customers(self, state: Dict, openai_client) -> CustomerState:
+        # Determine if they have active users/customers
+        pass
+    
+    def _extract_deployment_info(self, state: Dict) -> Optional[Dict]:
+        # Extract current provider, services, infrastructure components
+        pass
+    
+    def _needs_data_migration(self, state: Dict) -> bool:
+        # Determine if customer data migration is needed
+        pass
+    
+    def _extract_integrations(self, state: Dict) -> List[str]:
+        # Extract existing service integrations that must be maintained
+        pass
+```
+
+**2. Update Core Prompts** (`core/prompts.py`):
+```python
+INFRASTRUCTURE_READINESS_PROMPT = """
+You are an Infrastructure Readiness Assessment Agent. Your role is to comprehensively assess the user's current state across three critical dimensions: codebase, infrastructure, and customers.
+
+CRITICAL ASSESSMENT AREAS:
+1. Codebase State:
+   - Do they have actual application code written?
+   - Is it partially built or fully functional?
+   - Are they starting from just ideas?
+
+2. Infrastructure State:
+   - What cloud providers are they currently using?
+   - What services, databases, and infrastructure components?
+   - Are they running locally only or already deployed?
+
+3. Customer State:
+   - Do they have existing customers/users?
+   - Are these production users or just testing?
+   - What are the implications for migration?
+
+ASSESSMENT STRATEGY:
+- Ask these three specific questions:
+  1. "Do you have actual application code written, or are you starting from scratch?"
+  2. "What infrastructure are you currently using (cloud providers, services, databases, etc.)?"
+  3. "Do you have existing customers/users using your application?"
+
+MIGRATION CONSIDERATIONS:
+- Code migration strategies needed
+- Zero-downtime deployment requirements
+- Customer data migration planning
+- Existing service integrations to maintain
+
+CONTEXT FLAGS TO SET:
+- codebase_state: none/partial/complete
+- infrastructure_state: scratch/local_only/deployed/migrating
+- customer_state: none/testing/production
+- requires_zero_downtime: true if production customers
+- needs_data_migration: true if existing customer data
+- existing_integrations: list of services that must be maintained
+
+Be efficient but thorough - gather all three dimensions of information.
+"""
+```
+
+**3. Integration with Main Interview Flow** (`main.py` updates):
+```python
+async def run_interview():
+    state_manager = StateManager()
+    openai_client = OpenAIClient()
+    
+    # NEW: Infrastructure readiness assessment first
+    readiness_agent = InfrastructureReadinessAgent()
+    print("🔍 Let's start by understanding your current setup...")
+    
+    infrastructure_context = await readiness_agent.assess_readiness(
+        state_manager.get_state(), openai_client
+    )
+    
+    # Store context for all other agents
+    state_manager.update_state("infrastructure_context", infrastructure_context)
+    
+    # Initialize other agents with context awareness
+    agents = {
+        "profiler": ProfilerAgent(context=infrastructure_context),
+        "business": BusinessAgent(context=infrastructure_context),
+        "app": AppAgent(context=infrastructure_context),
+        "tribal": TribalAgent(context=infrastructure_context),
+        "best_practices": BestPracticesAgent(context=infrastructure_context)
+    }
+    
+    # Continue with existing flow...
+```
+
+**4. Context-Aware Agent Updates**:
+Update existing agents to respect infrastructure context:
+```python
+# In BusinessAgent, AppAgent, etc.
+def __init__(self, context: Optional[Dict] = None):
+    super().__init__(...)
+    self.infrastructure_context = context or {}
+
+def should_skip_question(self, topic: str) -> bool:
+    # Skip cloud provider questions if already deployed and satisfied
+    if topic == "cloud_provider" and self.infrastructure_context.get("skip_provider_questions"):
+        return True
+    return False
+
+def adapt_question_for_context(self, question: str, topic: str) -> str:
+    # Modify questions based on existing setup
+    if self.infrastructure_context.get("infrastructure_state") == "deployed":
+        return f"Since you're already deployed, {question.lower()}"
+    if self.infrastructure_context.get("customer_state") == "production":
+        return f"Given you have active customers, {question.lower()}"
+    return question
+
+def consider_migration_constraints(self) -> Dict:
+    # Return migration-specific considerations
+    if self.infrastructure_context.get("requires_zero_downtime"):
+        return {
+            "deployment_strategy": "blue_green",
+            "data_migration": "incremental",
+            "rollback_plan": "required"
+        }
+    return {}
+```
+
+**5. State Schema Updates** (`core/state_manager.py`):
+```python
+def __init__(self):
+    self.state = {
+        "infrastructure_context": {
+            "infrastructure_state": None,  # scratch, local_only, deployed, migrating
+            "codebase_state": None,  # none, partial, complete
+            "customer_state": None,  # none, testing, production
+            "current_provider": None,
+            "existing_services": [],
+            "existing_integrations": [],
+            "deployment_satisfaction": None,
+            "migration_reasons": [],
+            "requires_zero_downtime": False,
+            "needs_data_migration": False,
+            "skip_flags": {}
+        },
+        # ... existing state structure
+    }
+```
+
+# Test Strategy:
+**COMPREHENSIVE INFRASTRUCTURE READINESS TESTING**:
+
+**1. Three-Dimensional State Detection Testing**:
+- Test codebase assessment: "I have a fully built Node.js app" → codebase_state=complete
+- Test infrastructure assessment: "Running on AWS with RDS and S3" → infrastructure_state=deployed, existing_services=[RDS, S3]
+- Test customer assessment: "We have 1000 active users" → customer_state=production, requires_zero_downtime=True
+- Test combination: "Just ideas, no code yet" → codebase_state=none, skip certain technical questions
+
+**2. Migration Scenario Testing**:
+- Test with production customers: Verify zero-downtime deployment strategies are recommended
+- Test data migration needs: "Using PostgreSQL with customer data" → needs_data_migration=True
+- Test integration preservation: "Integrated with Stripe and SendGrid" → existing_integrations=[Stripe, SendGrid]
+- Test migration from Heroku with customers → focus on data migration and zero-downtime strategies
+
+**3. Context Propagation Testing**:
+- Verify all three assessment dimensions are stored in state manager
+- Test that subsequent agents receive and respect all context flags
+- Confirm BusinessAgent adapts questions for users with production customers
+- Verify AppAgent considers existing codebase state when asking technical questions
+
+**4. Question Adaptation Testing**:
+- Test that agents modify questions based on all three dimensions
+- Verify "Given you have active customers..." prefixes for production scenarios
+- Test that code migration questions appear only when codebase_state=complete
+- Confirm data migration planning appears when needs_data_migration=True
+
+**5. Real-world Scenario Testing**:
+- Startup with MVP and beta users: codebase=complete, customers=testing, focus on scaling
+- Enterprise migration: codebase=complete, customers=production, emphasize zero-downtime
+- Greenfield project: codebase=none, customers=none, full architecture planning
+- Local app ready to deploy: codebase=complete, infrastructure=local_only, deployment guidance
+
+**6. Edge Case Testing**:
+- Partial codebase with production customers (unusual but possible)
+- Multiple cloud providers in use simultaneously
+- Legacy systems with complex integrations
+- Users unsure about their exact customer count or codebase state

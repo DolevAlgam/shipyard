@@ -1,0 +1,195 @@
+# Task ID: 32
+# Title: Implement Adaptive Question Style and Expertise-Based Personalization System
+# Status: pending
+# Dependencies: 2, 4, 5, 16, 22
+# Priority: medium
+# Description: Create an intelligent question adaptation system that personalizes question style, complexity, and format based on user expertise level and project context, eliminating verbose patterns and delivering contextual, direct questions tailored to novice, intermediate, and advanced users.
+# Details:
+**ADAPTIVE QUESTION STYLE AND EXPERTISE PERSONALIZATION SYSTEM**
+
+**1. Create Question Style Analyzer** (`core/question_styler.py`):
+```python
+from typing import Dict, List, Optional, Tuple
+from enum import Enum
+from dataclasses import dataclass
+
+class ExpertiseLevel(str, Enum):
+    NOVICE = "novice"
+    INTERMEDIATE = "intermediate" 
+    ADVANCED = "advanced"
+
+class QuestionStyle(str, Enum):
+    SIMPLE_CHOICE = "simple_choice"  # Multiple choice for novices
+    FOCUSED_DIRECT = "focused_direct"  # Direct questions for intermediate
+    TECHNICAL_DEEP = "technical_deep"  # Technical depth for advanced
+
+@dataclass
+class QuestionContext:
+    user_expertise: ExpertiseLevel
+    project_type: Optional[str]
+    known_technologies: List[str]
+    previous_answers: Dict[str, str]
+    current_topic: str
+
+class QuestionStyler:
+    def __init__(self):
+        self.verbose_patterns = [
+            "is that important to you, if so",
+            "would you like to",
+            "do you think that",
+            "if that makes sense",
+            "does that sound right",
+            "what are your thoughts on"
+        ]
+        
+    def adapt_question(self, base_question: str, context: QuestionContext) -> str:
+        """Transform base question based on user expertise and context"""
+        # Remove verbose patterns
+        cleaned_question = self._remove_verbose_patterns(base_question)
+        
+        # Apply expertise-based styling
+        if context.user_expertise == ExpertiseLevel.NOVICE:
+            return self._create_novice_question(cleaned_question, context)
+        elif context.user_expertise == ExpertiseLevel.INTERMEDIATE:
+            return self._create_intermediate_question(cleaned_question, context)
+        else:
+            return self._create_advanced_question(cleaned_question, context)
+    
+    def _remove_verbose_patterns(self, question: str) -> str:
+        """Remove verbose, indirect language patterns"""
+        for pattern in self.verbose_patterns:
+            question = question.replace(pattern, "")
+        return question.strip()
+    
+    def _create_novice_question(self, question: str, context: QuestionContext) -> str:
+        """Create simple questions with options for novice users"""
+        return f"{question}\n\nChoose from:\nA) Option 1\nB) Option 2\nC) Option 3\nD) I'm not sure"
+    
+    def _create_intermediate_question(self, question: str, context: QuestionContext) -> str:
+        """Create focused, direct questions for intermediate users"""
+        return f"{question} Please be specific about your requirements."
+    
+    def _create_advanced_question(self, question: str, context: QuestionContext) -> str:
+        """Create technical depth questions for advanced users"""
+        return f"{question} Include technical specifications, constraints, and architectural considerations."
+```
+
+**2. Enhance Base Agent with Question Adaptation** (`agents/base_agent.py`):
+```python
+from core.question_styler import QuestionStyler, QuestionContext, ExpertiseLevel
+
+class BaseAgent:
+    def __init__(self, name: str, topics: List[str], prompt: str):
+        self.name = name
+        self.topics = topics
+        self.prompt = prompt
+        self.question_styler = QuestionStyler()
+    
+    def _get_question_context(self, state: Dict) -> QuestionContext:
+        """Extract question context from current state"""
+        user_profile = state.get("state", {}).get("user_profile", {})
+        return QuestionContext(
+            user_expertise=ExpertiseLevel(user_profile.get("expertise_level", "novice")),
+            project_type=user_profile.get("project_type"),
+            known_technologies=user_profile.get("known_technologies", []),
+            previous_answers=state.get("chat_history", {}).get(self.name, []),
+            current_topic=self.current_topic
+        )
+    
+    async def _generate_adaptive_question(self, base_question: str, state: Dict) -> str:
+        """Generate expertise-adapted question"""
+        context = self._get_question_context(state)
+        return self.question_styler.adapt_question(base_question, context)
+```
+
+**3. Create Contextual Question Generator** (`core/contextual_questions.py`):
+```python
+class ContextualQuestionGenerator:
+    def __init__(self):
+        self.question_templates = {
+            "novice": {
+                "traffic": "How many people use your app daily?\nA) Less than 100\nB) 100-1,000\nC) 1,000-10,000\nD) More than 10,000",
+                "budget": "What's your monthly budget?\nA) Under $50\nB) $50-200\nC) $200-1,000\nD) Over $1,000"
+            },
+            "intermediate": {
+                "traffic": "What's your expected daily active user count and peak traffic patterns?",
+                "budget": "What's your monthly infrastructure budget and cost constraints?"
+            },
+            "advanced": {
+                "traffic": "Provide detailed traffic analysis including DAU, peak concurrent users, geographic distribution, and growth projections.",
+                "budget": "Detail your infrastructure budget allocation, cost optimization requirements, and financial constraints for scaling."
+            }
+        }
+    
+    def get_contextual_question(self, topic: str, expertise: str, known_info: Dict) -> str:
+        """Generate contextual question avoiding already known information"""
+        if topic in known_info:
+            return self._generate_follow_up(topic, expertise, known_info[topic])
+        return self.question_templates[expertise].get(topic, f"Tell me about {topic}")
+```
+
+**4. Implement Personalization Based on Project Context**:
+```python
+class ProjectContextualizer:
+    def __init__(self):
+        self.context_adaptations = {
+            "e-commerce": {
+                "focus_areas": ["payment_processing", "inventory", "user_sessions"],
+                "terminology": {"users": "customers", "traffic": "orders"}
+            },
+            "saas": {
+                "focus_areas": ["multi_tenancy", "subscription_billing", "api_limits"],
+                "terminology": {"users": "subscribers", "traffic": "API calls"}
+            }
+        }
+    
+    def adapt_for_project(self, question: str, project_type: str) -> str:
+        """Adapt question terminology and focus for specific project types"""
+        if project_type in self.context_adaptations:
+            adaptations = self.context_adaptations[project_type]
+            for old_term, new_term in adaptations["terminology"].items():
+                question = question.replace(old_term, new_term)
+        return question
+```
+
+**5. Integration with Existing Agents**:
+Update all information-gathering agents (ProfilerAgent, BusinessAgent, AppAgent, TribalAgent) to use the new adaptive questioning system, ensuring questions are personalized based on user expertise and project context while avoiding repetition of known information.
+
+# Test Strategy:
+**COMPREHENSIVE TESTING STRATEGY FOR ADAPTIVE QUESTION SYSTEM**:
+
+**1. Verbose Pattern Removal Testing**:
+- Test removal of patterns like "is that important to you, if so..." from base questions
+- Verify questions become more direct: "What's your budget?" instead of "Is budget important to you, if so, what is it?"
+- Test edge cases where patterns appear multiple times or in different contexts
+
+**2. Expertise-Based Question Adaptation Testing**:
+- **Novice Testing**: Verify novice users receive multiple choice questions with clear options (A/B/C/D format)
+- **Intermediate Testing**: Confirm intermediate users get focused, direct questions without hand-holding
+- **Advanced Testing**: Ensure advanced users receive technical depth questions requesting specifications and constraints
+
+**3. Contextual Personalization Testing**:
+- Test project type adaptation: e-commerce users get "customers" instead of "users", SaaS users get "subscribers"
+- Verify questions reference known project context: "For your e-commerce platform, what's your peak order volume?"
+- Test that questions avoid asking for information already provided in previous conversations
+
+**4. Question Length and Directness Testing**:
+- Measure question length reduction compared to original verbose patterns
+- Verify questions are direct and actionable without unnecessary qualifiers
+- Test that shortened questions maintain clarity and don't lose important context
+
+**5. Integration Testing with Existing Agents**:
+- Test ProfilerAgent uses simple expertise assessment questions for new users
+- Verify BusinessAgent adapts business questions based on detected expertise level
+- Confirm AppAgent technical questions scale appropriately with user sophistication
+- Test TribalAgent organizational questions match company size and complexity
+
+**6. Context Memory Testing**:
+- Verify system remembers user expertise level across agent transitions
+- Test that known project information influences question generation throughout interview
+- Confirm questions build on previous answers rather than starting from scratch
+
+**7. Edge Case Testing**:
+- Test behavior when expertise level is uncertain or mixed signals are detected
+- Verify graceful handling when project type doesn't match predefined categories
+- Test question adaptation when user provides unexpected or incomplete information
